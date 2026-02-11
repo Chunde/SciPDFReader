@@ -1,0 +1,29 @@
+{
+  "name": "scipdfreader",
+  "version": "1.0.0",
+  "description": "A cross-platform PDF reader built with JavaScript and PDF.js",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx live-server --port=3000",
+    "serve": "npx serve .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "pdf",
+    "reader",
+    "javascript",
+    "cross-platform",
+    "pdfjs"
+  ],
+  "author": "sciPDFReader",
+  "license": "MIT",
+  "dependencies": {
+    "pdfjs-dist": "^3.11.174",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1",
+    "live-server": "^1.2.2"
+  }
+}
