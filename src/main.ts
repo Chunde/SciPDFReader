@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { PluginManager } from './core/PluginManager';
 import { AnnotationManager } from './core/AnnotationManager';
 import { AIServiceManager } from './core/AIServiceManager';
@@ -37,7 +38,7 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // Initialize managers
+  // Initialize services
   initializeServices();
 }
 
@@ -78,8 +79,45 @@ app.on('window-all-closed', () => {
 
 // IPC handlers for renderer process
 ipcMain.handle('load-pdf', async (event, filePath: string) => {
-  // Handle PDF loading
-  return { success: true, path: filePath };
+  try {
+    const data = fs.readFileSync(filePath);
+    return { 
+      success: true, 
+      path: filePath,
+      name: path.basename(filePath),
+      size: data.length
+    };
+  } catch (error) {
+    console.error('Error loading PDF:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('read-file-as-array-buffer', async (event, filePath: string) => {
+  try {
+    const data = fs.readFileSync(filePath);
+    return new Uint8Array(data).buffer;
+  } catch (error) {
+    console.error('Error reading file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('show-open-dialog', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'PDF Files', extensions: ['pdf'] }
+    ]
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    const filePath = result.filePaths[0];
+    mainWindow?.webContents.send('load-pdf', filePath);
+    return filePath;
+  }
+  
+  return null;
 });
 
 ipcMain.handle('save-annotation', async (event, annotation: any) => {
