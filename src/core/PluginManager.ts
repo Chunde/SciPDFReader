@@ -10,6 +10,7 @@ interface PluginInfo {
   path: string;
   enabled: boolean;
   exports?: any;
+  subscriptions: Disposable[];
 }
 
 export class PluginManager {
@@ -85,7 +86,9 @@ export class PluginManager {
         id: pluginId,
         manifest,
         path: pluginPath,
-        enabled: true
+        enabled: true,
+        exports: undefined,
+        subscriptions: []
       };
 
       this.plugins.set(pluginId, pluginInfo);
@@ -168,7 +171,7 @@ export class PluginManager {
     }
 
     // Dispose all subscriptions
-    pluginInfo.subscriptions.forEach(sub => sub.dispose());
+    plugin.subscriptions.forEach((sub: any) => sub.dispose());
   }
 
   public async uninstallPlugin(pluginId: string): Promise<void> {
@@ -206,7 +209,7 @@ export class PluginManager {
       deleteAnnotation: (id: string) => annotationManager.deleteAnnotation(id),
       getAnnotations: (pageNumber: number) => annotationManager.getAnnotations(pageNumber),
       searchAnnotations: (query: string) => annotationManager.searchAnnotations(query),
-      exportAnnotations: (format: string) => annotationManager.exportAnnotations(format)
+      exportAnnotations: (format: 'json' | 'markdown' | 'html') => annotationManager.exportAnnotations(format)
     };
   }
 

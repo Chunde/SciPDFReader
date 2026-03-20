@@ -8,8 +8,13 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "start": "electron .",
+    "dev": "npm run compile && npm run start",
+    "rebuild": "electron-rebuild -f -w",
     "package": "electron-builder",
-    "lint": "eslint src --ext ts"
+    "dist": "electron-builder",
+    "lint": "eslint src --ext ts",
+    "create-sample": "node scripts/create-sample-pdf.js",
+    "test-app": "npm run create-sample && npm run dev"
   },
   "author": "SciPDFReader Team",
   "license": "MIT",
@@ -23,6 +28,7 @@
     "electron": "^28.0.0",
     "electron-builder": "^24.9.0",
     "eslint": "^8.55.0",
+    "pdf-lib": "^1.17.1",
     "typescript": "^5.3.0"
   },
   "dependencies": {

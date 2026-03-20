@@ -2,6 +2,8 @@ import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 
+declare const window: any;
+
 interface PDFViewerProps {
   document: any;
   onAnnotationCreate: (annotation: any) => void;

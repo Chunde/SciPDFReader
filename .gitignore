@@ -6,6 +6,10 @@ out/
 dist/
 build/
 
+# Test files
+test-*.pdf
+*.test.pdf
+
 # Logs
 *.log
 npm-debug.log*

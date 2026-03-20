@@ -30,12 +30,20 @@ SciPDFReader/
 
 ## Getting Started
 
-### Prerequisites
+### Quick Start (Recommended)
 
-- Node.js 18+ and npm
-- Git
+**Windows:**
+```bash
+start-dev.bat
+```
 
-### Installation
+**Linux/Mac:**
+```bash
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+### Manual Installation
 
 1. Clone the repository:
 ```bash
@@ -57,6 +65,24 @@ npm run compile
 ```bash
 npm start
 ```
+
+### Quick Test
+
+To quickly test the application with a sample PDF:
+
+```bash
+npm run test-app
+```
+
+This will:
+1. Create a sample PDF file (`test-sample.pdf`)
+2. Compile the TypeScript code
+3. Launch the SciPDFReader application
+
+The sample PDF will demonstrate:
+- Multi-page PDF rendering
+- Text content for annotation testing
+- Feature list overview
 
 ## Development
 
