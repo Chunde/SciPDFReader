@@ -2,6 +2,17 @@
 
 A modern, extensible PDF reader with AI-powered annotation capabilities, built on Electron with a VS Code-inspired plugin architecture.
 
+## 🚀 Quick Start
+
+**Try it now in one command:**
+```bash
+npm run test-app
+```
+
+This will create a sample PDF, compile the code, and launch the application!
+
+See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for more quick start options.
+
 ## Features
 
 - 📖 **PDF Reading** - High-quality PDF rendering using PDF.js
