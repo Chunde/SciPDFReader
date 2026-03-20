@@ -12,6 +12,7 @@ const App: React.FC = () => {
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [currentDocument, setCurrentDocument] = useState<any>(null);
   const [annotations, setAnnotations] = useState<any[]>([]);
+  const [fileMenuOpen, setFileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Listen for PDF load events from file menu
@@ -21,8 +22,18 @@ const App: React.FC = () => {
 
     window.api?.onLoadPDF(handleLoadPDF);
 
+    // Close file menu when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.file-menu-container')) {
+        setFileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+
     return () => {
-      // Cleanup
+      document.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
@@ -59,10 +70,69 @@ const App: React.FC = () => {
     setRightPanelCollapsed(!rightPanelCollapsed);
   };
 
+  const handleOpenFile = () => {
+    window.api?.openFileDialog();
+    setFileMenuOpen(false);
+  };
+
+  const handleSave = () => {
+    console.log('Save PDF');
+    setFileMenuOpen(false);
+  };
+
+  const handleSaveAs = () => {
+    console.log('Save As');
+    setFileMenuOpen(false);
+  };
+
+  const handleClose = () => {
+    setCurrentDocument(null);
+    setFileMenuOpen(false);
+  };
+
+  const handleExit = () => {
+    window.api?.closeApp();
+    setFileMenuOpen(false);
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
-        <div className="app-title">SciPDFReader</div>
+        <div className="header-left">
+          <div className="app-title">SciPDFReader</div>
+          <div className="file-menu-container">
+            <button 
+              className="hamburger-btn"
+              onClick={() => setFileMenuOpen(!fileMenuOpen)}
+              title="File Menu"
+            >
+              <span className="hamburger-bar"></span>
+              <span className="hamburger-bar"></span>
+              <span className="hamburger-bar"></span>
+            </button>
+            {fileMenuOpen && (
+              <div className="file-dropdown-menu show">
+                <div className="dropdown-item" onClick={handleOpenFile}>
+                  <span>📁</span> Open PDF File...
+                </div>
+                <div className="dropdown-item" onClick={handleSave}>
+                  <span>💾</span> Save
+                </div>
+                <div className="dropdown-item" onClick={handleSaveAs}>
+                  <span>💾</span> Save As...
+                </div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-item" onClick={handleClose}>
+                  <span>❌</span> Close
+                </div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-item" onClick={handleExit}>
+                  <span>🚪</span> Exit
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="header-actions">
           {/* Additional header actions can go here */}
         </div>

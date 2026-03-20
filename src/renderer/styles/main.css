@@ -35,14 +35,80 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .app-title {
     font-size: 18px;
     font-weight: 600;
 }
 
-.header-actions {
+/* File Menu */
+.file-menu-container {
+    position: relative;
+}
+
+.hamburger-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    gap: 3px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.hamburger-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.hamburger-bar {
+    width: 20px;
+    height: 2px;
+    background-color: white;
+    border-radius: 1px;
+}
+
+.file-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 10000;
+    display: none;
+}
+
+.file-dropdown-menu.show {
+    display: block;
+}
+
+.file-dropdown-menu .dropdown-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #333;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.file-dropdown-menu .dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+
+.file-dropdown-menu .dropdown-item span {
+    font-size: 16px;
 }
 
 /* Main Content Area */

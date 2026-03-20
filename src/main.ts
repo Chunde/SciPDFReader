@@ -78,6 +78,12 @@ app.on('window-all-closed', () => {
 });
 
 // IPC handlers for renderer process
+ipcMain.handle('close-app', () => {
+  if (mainWindow) {
+    mainWindow.close();
+  }
+});
+
 ipcMain.handle('load-pdf', async (event, filePath: string) => {
   try {
     const data = fs.readFileSync(filePath);

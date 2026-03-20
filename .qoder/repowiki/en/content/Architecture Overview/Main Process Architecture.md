@@ -8,9 +8,15 @@
 - [src/core/PluginManager.ts](file://src/core/PluginManager.ts)
 - [src/types/index.ts](file://src/types/index.ts)
 - [src/renderer/index.html](file://src/renderer/index.html)
-- [out/preload.js](file://out/preload.js)
+- [src/preload.ts](file://src/preload.ts)
 - [package.json](file://package.json)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated file path resolution section to reflect the corrected renderer file loading path
+- Enhanced troubleshooting guide with specific guidance for file loading issues
+- Added emphasis on proper path resolution for development vs production environments
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -42,9 +48,7 @@ MAIN["src/main.ts"]
 ANNOT["src/core/AnnotationManager.ts"]
 AI["src/core/AIServiceManager.ts"]
 PLUG["src/core/PluginManager.ts"]
-end
-subgraph "Preload"
-PRELOAD["out/preload.js"]
+PRELOAD["src/preload.ts"]
 end
 subgraph "Renderer"
 RENDERER_HTML["src/renderer/index.html"]
@@ -60,14 +64,14 @@ PRELOAD --> MAIN
 - [src/main.ts:1-156](file://src/main.ts#L1-L156)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
-- [src/core/PluginManager.ts:1-247](file://src/core/PluginManager.ts#L1-L247)
-- [out/preload.js:1-29](file://out/preload.js#L1-L29)
+- [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
+- [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
 - [src/renderer/index.html:1-14](file://src/renderer/index.html#L1-L14)
 
 **Section sources**
 - [src/main.ts:13-43](file://src/main.ts#L13-L43)
 - [src/renderer/index.html:1-14](file://src/renderer/index.html#L1-L14)
-- [out/preload.js:6-28](file://out/preload.js#L6-L28)
+- [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
 
 ## Core Components
 - AnnotationManager: Manages annotations, persistence, and export formats. Provides CRUD operations and search.
@@ -79,7 +83,7 @@ These components are instantiated and wired during main process initialization a
 **Section sources**
 - [src/core/AnnotationManager.ts:6-172](file://src/core/AnnotationManager.ts#L6-L172)
 - [src/core/AIServiceManager.ts:3-214](file://src/core/AIServiceManager.ts#L3-L214)
-- [src/core/PluginManager.ts:15-35](file://src/core/PluginManager.ts#L15-L35)
+- [src/core/PluginManager.ts:16-36](file://src/core/PluginManager.ts#L16-L36)
 
 ## Architecture Overview
 The main process creates a secure BrowserWindow with context isolation and a preload script. The preload script exposes a limited API to the renderer, which invokes IPC handlers in the main process. Services are initialized once and reused by IPC handlers to fulfill renderer requests.
@@ -107,13 +111,13 @@ P-->>R : "Promise resolve"
 
 **Diagram sources**
 - [src/main.ts:81-128](file://src/main.ts#L81-L128)
-- [out/preload.js:8-14](file://out/preload.js#L8-L14)
+- [src/preload.ts:5-33](file://src/preload.ts#L5-L33)
 - [src/core/AnnotationManager.ts:46-59](file://src/core/AnnotationManager.ts#L46-L59)
 
 **Section sources**
 - [src/main.ts:13-43](file://src/main.ts#L13-L43)
 - [src/main.ts:80-156](file://src/main.ts#L80-L156)
-- [out/preload.js:6-28](file://out/preload.js#L6-L28)
+- [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
 
 ## Detailed Component Analysis
 
@@ -128,6 +132,8 @@ P-->>R : "Promise resolve"
   - Ready: createWindow and register activate handler.
   - All windows closed: quit except on macOS.
 
+**Critical Infrastructure Fix**: The renderer file loading path has been corrected to ensure proper file resolution during application startup. The path now correctly resolves to `'../src/renderer/index.html'` instead of the previous incorrect path `'../renderer/index.html'`.
+
 Security implications:
 - Disabling nodeIntegration prevents direct Node.js access from the renderer.
 - Enabling contextIsolation ensures renderer code runs in a separate context.
@@ -135,8 +141,9 @@ Security implications:
 
 **Section sources**
 - [src/main.ts:13-43](file://src/main.ts#L13-L43)
+- [src/main.ts:29-30](file://src/main.ts#L29-L30)
 - [src/main.ts:62-78](file://src/main.ts#L62-L78)
-- [out/preload.js:6-28](file://out/preload.js#L6-L28)
+- [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
 
 ### Service Initialization Sequence
 - AnnotationManager: Constructed and initializes default annotation types and persistent storage path.
@@ -157,12 +164,12 @@ LoadPlugins --> End(["Services Ready"])
 **Diagram sources**
 - [src/main.ts:45-60](file://src/main.ts#L45-L60)
 - [src/core/AnnotationManager.ts:11-19](file://src/core/AnnotationManager.ts#L11-L19)
-- [src/core/PluginManager.ts:21-35](file://src/core/PluginManager.ts#L21-L35)
+- [src/core/PluginManager.ts:22-36](file://src/core/PluginManager.ts#L22-L36)
 
 **Section sources**
 - [src/main.ts:45-60](file://src/main.ts#L45-L60)
 - [src/core/AnnotationManager.ts:11-19](file://src/core/AnnotationManager.ts#L11-L19)
-- [src/core/PluginManager.ts:48-69](file://src/core/PluginManager.ts#L48-L69)
+- [src/core/PluginManager.ts:49-70](file://src/core/PluginManager.ts#L49-L70)
 
 ### IPC Handler Registration Pattern
 The main process registers handlers using ipcMain.handle() for each capability:
@@ -188,16 +195,16 @@ P-->>R : "Promise resolve"
 ```
 
 **Diagram sources**
-- [src/main.ts:144-149](file://src/main.ts#L144-L149)
-- [src/core/PluginManager.ts:120-132](file://src/core/PluginManager.ts#L120-L132)
-- [out/preload.js:22-24](file://out/preload.js#L22-L24)
+- [src/main.ts:145-149](file://src/main.ts#L145-L149)
+- [src/core/PluginManager.ts:123-135](file://src/core/PluginManager.ts#L123-L135)
+- [src/preload.ts:25-28](file://src/preload.ts#L25-L28)
 
 **Section sources**
 - [src/main.ts:80-156](file://src/main.ts#L80-L156)
-- [src/core/PluginManager.ts:120-132](file://src/core/PluginManager.ts#L120-L132)
+- [src/core/PluginManager.ts:123-135](file://src/core/PluginManager.ts#L123-L135)
 
 ### Application Lifecycle Management
-- Creation: createWindow constructs BrowserWindow with security preferences, loads renderer HTML, and initializes services.
+- Creation: createWindow constructs BrowserWindow with security preferences, loads renderer HTML using the corrected path, and initializes services.
 - Activation: app.on('activate') re-creates the window if none exist (macOS behavior).
 - Closing: app.on('window-all-closed') quits the app except on macOS.
 
@@ -205,9 +212,10 @@ Graceful shutdown:
 - No explicit cleanup shown in the main process; services are long-lived singletons referenced by handlers. Proper disposal patterns are available in PluginManager for plugin lifecycles.
 
 **Section sources**
+- [src/main.ts:29-30](file://src/main.ts#L29-L30)
 - [src/main.ts:62-78](file://src/main.ts#L62-L78)
 - [src/main.ts:13-43](file://src/main.ts#L13-L43)
-- [src/core/PluginManager.ts:170-172](file://src/core/PluginManager.ts#L170-L172)
+- [src/core/PluginManager.ts:177-193](file://src/core/PluginManager.ts#L177-L193)
 
 ### Security Considerations
 - nodeIntegration disabled and contextIsolation enabled in BrowserWindow webPreferences.
@@ -217,7 +225,7 @@ Graceful shutdown:
 
 **Section sources**
 - [src/main.ts:18-22](file://src/main.ts#L18-L22)
-- [out/preload.js:6-28](file://out/preload.js#L6-L28)
+- [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
 - [src/main.ts:106-121](file://src/main.ts#L106-L121)
 
 ### Practical IPC Communication Patterns
@@ -246,12 +254,12 @@ end
 
 **Diagram sources**
 - [src/main.ts:106-121](file://src/main.ts#L106-L121)
-- [out/preload.js:18-20](file://out/preload.js#L18-L20)
+- [src/preload.ts:17-23](file://src/preload.ts#L17-L23)
 
 **Section sources**
 - [src/main.ts:81-94](file://src/main.ts#L81-L94)
 - [src/main.ts:106-121](file://src/main.ts#L106-L121)
-- [out/preload.js:8-20](file://out/preload.js#L8-L20)
+- [src/preload.ts:7-23](file://src/preload.ts#L7-L23)
 
 #### Annotation Saving and Retrieval
 - Renderer saves annotations via api.saveAnnotation(annotation).
@@ -281,7 +289,7 @@ P-->>R : "Promise resolve"
 **Diagram sources**
 - [src/main.ts:123-135](file://src/main.ts#L123-L135)
 - [src/core/AnnotationManager.ts:46-84](file://src/core/AnnotationManager.ts#L46-L84)
-- [out/preload.js:10-13](file://out/preload.js#L10-L13)
+- [src/preload.ts:10-12](file://src/preload.ts#L10-L12)
 
 **Section sources**
 - [src/main.ts:123-135](file://src/main.ts#L123-L135)
@@ -308,7 +316,7 @@ P-->>R : "Promise resolve"
 **Diagram sources**
 - [src/main.ts:137-142](file://src/main.ts#L137-L142)
 - [src/core/AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
-- [out/preload.js:14](file://out/preload.js#L14)
+- [src/preload.ts:14-15](file://src/preload.ts#L14-L15)
 
 **Section sources**
 - [src/main.ts:137-142](file://src/main.ts#L137-L142)
@@ -333,13 +341,13 @@ P-->>R : "Promise resolve"
 ```
 
 **Diagram sources**
-- [src/main.ts:144-149](file://src/main.ts#L144-L149)
-- [src/core/PluginManager.ts:120-132](file://src/core/PluginManager.ts#L120-L132)
-- [out/preload.js:22-24](file://out/preload.js#L22-L24)
+- [src/main.ts:145-149](file://src/main.ts#L145-L149)
+- [src/core/PluginManager.ts:123-135](file://src/core/PluginManager.ts#L123-L135)
+- [src/preload.ts:25-28](file://src/preload.ts#L25-L28)
 
 **Section sources**
-- [src/main.ts:144-149](file://src/main.ts#L144-L149)
-- [src/core/PluginManager.ts:120-132](file://src/core/PluginManager.ts#L120-L132)
+- [src/main.ts:145-149](file://src/main.ts#L145-L149)
+- [src/core/PluginManager.ts:123-135](file://src/core/PluginManager.ts#L123-L135)
 
 ### Platform-Specific Behaviors and Development vs Production Differences
 - Development:
@@ -364,7 +372,7 @@ graph LR
 MAIN["src/main.ts"] --> ANNOT["src/core/AnnotationManager.ts"]
 MAIN --> AI["src/core/AIServiceManager.ts"]
 MAIN --> PLUG["src/core/PluginManager.ts"]
-PRELOAD["out/preload.js"] --> MAIN
+PRELOAD["src/preload.ts"] --> MAIN
 RENDERER["src/renderer/index.html"] --> PRELOAD
 ANNOT --> TYPES["src/types/index.ts"]
 AI --> TYPES
@@ -376,7 +384,7 @@ PLUG --> TYPES
 - [src/core/AnnotationManager.ts:1-5](file://src/core/AnnotationManager.ts#L1-L5)
 - [src/core/AIServiceManager.ts:1](file://src/core/AIServiceManager.ts#L1)
 - [src/core/PluginManager.ts:1-4](file://src/core/PluginManager.ts#L1-L4)
-- [out/preload.js:3](file://out/preload.js#L3)
+- [src/preload.ts:1](file://src/preload.ts#L1)
 - [src/renderer/index.html:10](file://src/renderer/index.html#L10)
 - [src/types/index.ts:1](file://src/types/index.ts#L1)
 
@@ -385,7 +393,7 @@ PLUG --> TYPES
 - [src/core/AnnotationManager.ts:1-5](file://src/core/AnnotationManager.ts#L1-L5)
 - [src/core/AIServiceManager.ts:1](file://src/core/AIServiceManager.ts#L1)
 - [src/core/PluginManager.ts:1-4](file://src/core/PluginManager.ts#L1-L4)
-- [out/preload.js:3](file://out/preload.js#L3)
+- [src/preload.ts:1](file://src/preload.ts#L1)
 - [src/renderer/index.html:10](file://src/renderer/index.html#L10)
 - [src/types/index.ts:1](file://src/types/index.ts#L1)
 
@@ -394,8 +402,6 @@ PLUG --> TYPES
 - AI task execution is asynchronous; ensure tasks are queued and results cached where appropriate to avoid redundant computations.
 - Plugin loading scans directories and requires modules; cache plugin manifests and avoid repeated disk scans.
 - Annotation persistence writes to disk; batch writes or debounce to reduce I/O overhead.
-
-[No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -408,16 +414,21 @@ Common issues and resolutions:
   - Ensure registerCommand was invoked and the commandId matches when executing.
 - File dialog not opening:
   - Ensure main process dialog handler is registered and called from preload.
+- **Renderer fails to load in development**:
+  - **Critical**: Verify the renderer file path is correctly set to `'../src/renderer/index.html'` in the main process. The previous incorrect path `'../renderer/index.html'` would cause file loading failures during development.
+- **Production build issues**:
+  - Ensure the renderer bundle is built and placed in the correct output directory structure.
+
+**Updated** Added specific guidance for the corrected renderer file loading path and development environment troubleshooting.
 
 **Section sources**
 - [src/main.ts:18-22](file://src/main.ts#L18-L22)
-- [src/main.ts:144-149](file://src/main.ts#L144-L149)
-- [out/preload.js:6-28](file://out/preload.js#L6-L28)
+- [src/main.ts:29-30](file://src/main.ts#L29-L30)
+- [src/main.ts:145-149](file://src/main.ts#L145-L149)
+- [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
 
 ## Conclusion
 The main process architecture employs a secure, service-oriented design with clear IPC boundaries. The BrowserWindow is configured with strong security defaults, and the preload script exposes a minimal API surface. Services are initialized once and reused by IPC handlers to provide robust functionality for PDF operations, annotations, AI tasks, and plugin management. Following the patterns documented here ensures predictable behavior, maintainable code, and safe cross-process communication.
-
-[No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 

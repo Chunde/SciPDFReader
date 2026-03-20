@@ -5,15 +5,29 @@
 - [package.json](file://package.json)
 - [tsconfig.json](file://tsconfig.json)
 - [README.md](file://README.md)
+- [TESTING.md](file://TESTING.md)
 - [PLUGIN-GUIDE.md](file://PLUGIN-GUIDE.md)
-- [DESIGN.md](file://DESIGN.md)
+- [QUICK_REFERENCE.md](file://QUICK_REFERENCE.md)
 - [src/main.ts](file://src/main.ts)
 - [src/preload.ts](file://src/preload.ts)
 - [src/core/PluginManager.ts](file://src/core/PluginManager.ts)
 - [src/core/AnnotationManager.ts](file://src/core/AnnotationManager.ts)
 - [src/core/AIServiceManager.ts](file://src/core/AIServiceManager.ts)
 - [src/types/index.ts](file://src/types/index.ts)
+- [src/renderer/App.tsx](file://src/renderer/App.tsx)
+- [src/renderer/components/PDFViewer.tsx](file://src/renderer/components/PDFViewer.tsx)
+- [src/renderer/components/RightPanel.tsx](file://src/renderer/components/RightPanel.tsx)
+- [src/renderer/components/Sidebar.tsx](file://src/renderer/components/Sidebar.tsx)
+- [scripts/create-sample-pdf.js](file://scripts/create-sample-pdf.js)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive testing documentation based on TESTING.md
+- Enhanced development workflow with step-by-step testing procedures
+- Included automated testing with sample PDF generation
+- Added troubleshooting protocols and performance testing guidelines
+- Integrated testing checklist and quality assurance processes
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -26,13 +40,14 @@
 8. [Troubleshooting Guide](#troubleshooting-guide)
 9. [Contribution Guidelines](#contribution-guidelines)
 10. [Testing Strategies](#testing-strategies)
-11. [Release Process and Distribution](#release-process-and-distribution)
-12. [Debugging and Profiling](#debugging-and-profiling)
-13. [Code Standards and Conventions](#code-standards-and-conventions)
-14. [Conclusion](#conclusion)
+11. [Development Workflow](#development-workflow)
+12. [Release Process and Distribution](#release-process-and-distribution)
+13. [Debugging and Profiling](#debugging-and-profiling)
+14. [Code Standards and Conventions](#code-standards-and-conventions)
+15. [Conclusion](#conclusion)
 
 ## Introduction
-This development guide provides a comprehensive overview of setting up the development environment, building, extending, and contributing to SciPDFReader. It covers Node.js requirements, dependency management, TypeScript configuration, compilation and packaging, linting, cross-platform builds, code standards, contribution workflow, testing strategies, release processes, and practical debugging and optimization tips tailored for the Electron environment.
+This development guide provides a comprehensive overview of setting up the development environment, building, extending, and contributing to SciPDFReader. It covers Node.js requirements, dependency management, TypeScript configuration, compilation and packaging, linting, cross-platform builds, code standards, contribution workflow, testing strategies, development workflow enhancements, release processes, and practical debugging and optimization tips tailored for the Electron environment.
 
 ## Project Structure
 SciPDFReader follows a layered architecture:
@@ -67,14 +82,13 @@ AIM --> Types
 **Diagram sources**
 - [src/main.ts:1-156](file://src/main.ts#L1-L156)
 - [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
-- [src/core/PluginManager.ts:1-247](file://src/core/PluginManager.ts#L1-L247)
+- [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
 - [src/types/index.ts:1-224](file://src/types/index.ts#L1-L224)
 
 **Section sources**
 - [README.md:13-29](file://README.md#L13-L29)
-- [DESIGN.md:51-85](file://DESIGN.md#L51-L85)
 
 ## Core Components
 - Electron main process initializes BrowserWindow, sets up IPC handlers, and manages lifecycle events.
@@ -88,7 +102,7 @@ Key responsibilities and interactions are defined in the source files listed bel
 **Section sources**
 - [src/main.ts:1-156](file://src/main.ts#L1-L156)
 - [src/preload.ts:1-34](file://src/preload.ts#L1-L34)
-- [src/core/PluginManager.ts:1-247](file://src/core/PluginManager.ts#L1-L247)
+- [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
 - [src/types/index.ts:1-224](file://src/types/index.ts#L1-L224)
@@ -198,7 +212,7 @@ end
 - [src/core/PluginManager.ts:48-99](file://src/core/PluginManager.ts#L48-L99)
 
 **Section sources**
-- [src/core/PluginManager.ts:1-247](file://src/core/PluginManager.ts#L1-L247)
+- [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 
 ### Annotation Management
 - Manages annotation types and instances, persists to a user-specific data directory, supports CRUD operations, search, and export to multiple formats.
@@ -279,15 +293,16 @@ Scripts --> Watch["watch: tsc -watch -p ./"]
 Scripts --> Start["start: electron ."]
 Scripts --> Package["package: electron-builder"]
 Scripts --> Lint["lint: eslint src --ext ts"]
+Scripts --> CreateSample["create-sample: node scripts/create-sample-pdf.js"]
+Scripts --> TestApp["test-app: npm run create-sample && npm run dev"]
 ```
 
 **Diagram sources**
-- [package.json:7-12](file://package.json#L7-L12)
+- [package.json:7-18](file://package.json#L7-L18)
 - [package.json:34-54](file://package.json#L34-L54)
 
 **Section sources**
-- [package.json:1-56](file://package.json#L1-L56)
-- [README.md:61-70](file://README.md#L61-L70)
+- [package.json:1-63](file://package.json#L1-L63)
 
 ## Dependency Analysis
 External dependencies include Electron, TypeScript, ESLint, and UI/runtime libraries. Build-time configuration defines cross-platform targets and output directories.
@@ -325,12 +340,10 @@ Pkg --> UUID
 - Use incremental saves and lazy loading for annotations and large PDFs.
 - Consider virtualization for large document rendering and batch AI requests where appropriate.
 
-[No sources needed since this section provides general guidance]
-
 ## Troubleshooting Guide
 Common development issues and resolutions:
 - Node.js version mismatch: Ensure Node.js 18+ as per prerequisites.
-- Missing native modules: Rebuild native deps against Electron’s Node.js ABI if needed.
+- Missing native modules: Rebuild native deps against Electron's Node.js ABI if needed.
 - IPC errors: Verify preload exposes the correct API and main process handlers match invocation signatures.
 - Plugin load failures: Confirm plugin manifests and main entry paths; check activation events and user plugins directory permissions.
 - Lint failures: Run ESLint and fix reported issues; ensure TypeScript strictness is maintained.
@@ -362,19 +375,234 @@ Community collaboration:
 - [README.md:152-158](file://README.md#L152-L158)
 
 ## Testing Strategies
-Unit testing:
-- Test core managers in isolation using mocks for filesystem and AI providers.
-- Validate task execution paths and error handling in AIServiceManager.
 
-Integration testing:
-- Verify IPC flows between preload, main, and renderer.
-- Test plugin loading and command registration via PluginManager.
+### Automated Testing with Sample PDF Generation
+SciPDFReader provides comprehensive automated testing capabilities through a dedicated testing framework and sample PDF generation:
 
-Quality assurance:
-- Run ESLint and TypeScript checks before committing.
-- Use watch mode during development to catch type errors early.
+#### Quick Test Command
+The fastest way to test SciPDFReader uses the integrated test-app command:
+```bash
+npm run test-app
+```
 
-[No sources needed since this section provides general guidance]
+This single command automatically:
+1. ✅ Creates a sample PDF (`test-sample.pdf`)
+2. ✅ Compiles TypeScript code
+3. ✅ Launches the application
+
+#### Step-by-Step Testing Process
+**Installation & Setup:**
+```bash
+# Clone and install
+git clone https://github.com/Chunde/SciPDFReader.git
+cd SciPDFReader
+npm install
+
+# Compile
+npm run compile
+```
+
+**Create Test PDF:**
+```bash
+npm run create-sample
+```
+
+This creates `test-sample.pdf` with:
+- 2 pages of content
+- Feature list for testing
+- Text suitable for annotation testing
+
+**Run Application:**
+```bash
+npm start
+```
+
+Or use development mode:
+```bash
+npm run dev
+```
+
+#### Testing Checklist
+**Basic Functionality:**
+- [ ] Application launches without errors
+- [ ] Can open PDF files
+- [ ] PDF renders correctly
+- [ ] Page navigation works
+- [ ] Zoom controls function properly
+
+**UI/UX:**
+- [ ] All buttons are clickable
+- [ ] Menus open and close correctly
+- [ ] Sidebar panels collapse/expand
+- [ ] No visual glitches or overlapping elements
+
+**Advanced Features (If configured):**
+- [ ] Annotations can be created
+- [ ] Annotations are saved
+- [ ] Annotations display in right panel
+- [ ] AI features work (if API key configured)
+
+### PDF Rendering Quality Assessment
+The testing framework focuses on comprehensive PDF rendering validation:
+
+**PDF Rendering Tests:**
+- [ ] Open PDF file (File → Open or toolbar button)
+- [ ] Check rendering quality
+- [ ] Navigate between pages using:
+  - Previous/Next buttons
+  - Page number input
+  - Keyboard arrow keys (if implemented)
+
+**Zoom Controls Testing:**
+- [ ] Zoom In (toolbar button)
+- [ ] Zoom Out (toolbar button)
+- [ ] Select zoom levels from dropdown (50% - 300%)
+- [ ] Fit to Width functionality
+
+### Annotation System Verification
+Comprehensive annotation system testing covers multiple annotation types:
+
+**Annotation Types to Test:**
+- [ ] Highlight text
+- [ ] Underline text
+- [ ] Add notes
+- [ ] Translation annotations (requires AI setup)
+- [ ] Background information (requires AI setup)
+
+**Annotation Management:**
+- [ ] Annotations can be created
+- [ ] Annotations are saved
+- [ ] Annotations display in right panel
+- [ ] Annotation export functionality (JSON, Markdown, HTML)
+
+### AI Service Testing
+**AI Feature Testing (If configured):**
+- [ ] Translation functionality
+- [ ] Summarization feature
+- [ ] Background information lookup
+- [ ] Keyword extraction
+- [ ] Question answering
+
+### UI Component Testing
+**Component Verification:**
+- [ ] Left sidebar (document outline)
+- [ ] Right panel (annotations list)
+- [ ] Toolbar responsiveness
+- [ ] View options dropdown menu
+
+### Performance Testing
+**Performance Validation:**
+Test with different PDF sizes:
+- Small PDF (< 1MB) ✅
+- Medium PDF (1-10MB) ✅
+- Large PDF (> 10MB) ⚠️
+
+Monitor:
+- Memory usage
+- Rendering speed
+- Scroll smoothness
+
+### Troubleshooting Protocols
+**Application Won't Start:**
+```bash
+# Error: Cannot find module
+npm install
+npm run compile
+
+# Error: ERR_FILE_NOT_FOUND
+Check that `src/renderer/index.html` exists
+```
+
+**Compilation Errors:**
+```bash
+# Clean and recompile
+rm -rf out/
+npm run compile
+```
+
+**PDF Not Loading:**
+- Ensure the file path doesn't contain special characters
+- Try the sample PDF: `test-sample.pdf`
+- Check Electron console for errors (Ctrl+Shift+I)
+
+### Development Mode Testing
+For active development with hot reload:
+```bash
+# Watch mode for TypeScript
+npm run watch
+
+# In another terminal, start Electron
+npm start
+```
+
+### Testing Infrastructure
+The testing infrastructure includes:
+
+**Sample PDF Generator:**
+The `scripts/create-sample-pdf.js` script generates comprehensive test PDFs with:
+- Multiple pages of structured content
+- Feature lists for testing various functionalities
+- Text suitable for annotation and selection testing
+
+**Renderer Components Testing:**
+- PDFViewer component testing for rendering quality
+- RightPanel component testing for annotation display
+- Sidebar component testing for document outline
+- Toolbar component testing for UI interactions
+
+**Core Services Testing:**
+- AnnotationManager testing for CRUD operations
+- AIServiceManager testing for AI task execution
+- PluginManager testing for plugin lifecycle
+
+**Section sources**
+- [TESTING.md:1-191](file://TESTING.md#L1-L191)
+- [scripts/create-sample-pdf.js:1-112](file://scripts/create-sample-pdf.js#L1-L112)
+- [src/renderer/App.tsx:1-104](file://src/renderer/App.tsx#L1-L104)
+- [src/renderer/components/PDFViewer.tsx:1-152](file://src/renderer/components/PDFViewer.tsx#L1-L152)
+- [src/renderer/components/RightPanel.tsx:1-171](file://src/renderer/components/RightPanel.tsx#L1-L171)
+- [src/renderer/components/Sidebar.tsx:1-70](file://src/renderer/components/Sidebar.tsx#L1-L70)
+
+## Development Workflow
+
+### Integrated Development Environment Setup
+1. **Environment Preparation:**
+   - Ensure Node.js 18+ is installed
+   - Install dependencies: `npm install`
+   - Compile TypeScript: `npm run compile`
+
+2. **Development Server:**
+   - Start development server: `npm run dev`
+   - Watch mode for automatic recompilation: `npm run watch`
+
+3. **Testing Workflow:**
+   - Quick testing: `npm run test-app`
+   - Manual testing: `npm run create-sample` then `npm run dev`
+
+### Continuous Integration Testing
+The development workflow supports continuous testing through:
+- Automated sample PDF generation
+- Integrated compilation and launch
+- Comprehensive testing checklists
+- Performance monitoring
+
+### Quality Assurance Processes
+- Run ESLint and TypeScript checks before committing
+- Use watch mode during development to catch type errors early
+- Validate all core functionalities through systematic testing
+- Monitor performance metrics during development
+
+### Issue Reporting and Resolution
+When reporting bugs, include:
+- Operating system version
+- Node.js version (`node -v`)
+- npm version (`npm -v`)
+- Error messages from console
+- Steps to reproduce
+
+**Section sources**
+- [TESTING.md:145-191](file://TESTING.md#L145-L191)
+- [package.json:7-18](file://package.json#L7-L18)
 
 ## Release Process and Distribution
 - Versioning: Increment version in package.json for releases.
@@ -421,4 +649,4 @@ Memory management:
 - [src/main.ts:81-156](file://src/main.ts#L81-L156)
 
 ## Conclusion
-This guide consolidates the essential development practices for SciPDFReader, from environment setup and build configuration to architecture, testing, and release procedures. By following the documented workflows and standards, contributors can efficiently extend the application, integrate plugins, and deliver robust, cross-platform experiences.
+This guide consolidates the essential development practices for SciPDFReader, from environment setup and build configuration to architecture, comprehensive testing strategies, development workflow enhancements, and release procedures. The addition of detailed testing documentation through TESTING.md provides developers with a complete testing framework, automated sample PDF generation, and systematic quality assurance processes. By following the documented workflows, standards, and testing procedures, contributors can efficiently extend the application, integrate plugins, deliver robust cross-platform experiences, and maintain high-quality software development practices.

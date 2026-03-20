@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   
   // File operations
   openFileDialog: () => ipcRenderer.invoke('show-open-dialog'),
+  closeApp: () => ipcRenderer.invoke('close-app'),
   
   // Event listeners
   onLoadPDF: (callback: (event: any, filePath: string) => void) => {
