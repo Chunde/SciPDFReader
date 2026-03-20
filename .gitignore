@@ -1,6 +1,11 @@
 # Dependencies
 node_modules/
 
+# Build outputs
+out/
+dist/
+build/
+
 # Logs
 *.log
 npm-debug.log*
@@ -30,11 +35,5 @@ Thumbs.db
 *.swo
 *~
 
-# Build outputs
-dist/
-build/
-out/
-
-# Sensitive files
-config/
-credentials
+# Application data
+.scipdfreader/

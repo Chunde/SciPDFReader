@@ -1,77 +1,169 @@
-# sciPDFReader - Cross-Platform PDF Reader
+# SciPDFReader - AI-Powered PDF Reader
 
-A lightweight, cross-platform PDF reader built with JavaScript using the PDF.js library. This application runs in any modern web browser and provides essential PDF viewing functionality.
+A modern, extensible PDF reader with AI-powered annotation capabilities, built on Electron with a VS Code-inspired plugin architecture.
 
 ## Features
 
-- View PDF files directly in the browser
-- Navigate between pages
-- Zoom in/out functionality
-- Fit page to width
-- Responsive design for mobile and desktop
-- Keyboard shortcuts for navigation
-- File metadata display
+- 📖 **PDF Reading** - High-quality PDF rendering using PDF.js
+- ✏️ **Annotation System** - Highlight, underline, notes, and custom annotations
+- 🤖 **AI Integration** - Automatic translation, background information, summarization
+- 🔌 **Plugin System** - Extensible architecture inspired by VS Code
+- 💻 **Cross-Platform** - Windows, macOS, Linux support
 
-## Keyboard Shortcuts
+## Project Structure
 
-- Left Arrow: Previous page
-- Right Arrow: Next page
-- `+` or `=`: Zoom in
-- `-` or `_`: Zoom out
+```
+SciPDFReader/
+├── src/
+│   ├── main.ts              # Electron main process
+│   ├── preload.ts           # Preload script for security
+│   ├── renderer/            # React-based UI
+│   ├── core/                # Core modules
+│   │   ├── AnnotationManager.ts
+│   │   ├── PluginManager.ts
+│   │   └── AIServiceManager.ts
+│   └── types/               # TypeScript type definitions
+├── package.json
+├── tsconfig.json
+└── DESIGN.md                # Architecture design document
+```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Node.js 18+ and npm
+- Git
 
 ### Installation
 
-1. Clone or download this repository
-2. Open `index.html` in your web browser
-3. Click the file input button to select a PDF file
-4. Start reading!
+1. Clone the repository:
+```bash
+git clone https://github.com/Chunde/SciPDFReader.git
+cd SciPDFReader
+```
 
-### Development
-
-If you want to run a local development server:
-
+2. Install dependencies:
 ```bash
 npm install
+```
+
+3. Compile TypeScript:
+```bash
+npm run compile
+```
+
+4. Run the application:
+```bash
 npm start
 ```
 
-Or use npx to run without installing:
+## Development
 
-```bash
-npx serve .
+### Build Commands
+
+- `npm run compile` - Compile TypeScript
+- `npm run watch` - Watch mode for development
+- `npm start` - Start the application
+- `npm run package` - Package the application for distribution
+- `npm run lint` - Run ESLint
+
+### Creating Plugins
+
+See [PLUGIN-GUIDE.md](./PLUGIN-GUIDE.md) for detailed instructions on creating plugins.
+
+Example plugin structure:
+
+```typescript
+import * as scipdf from 'scipdfreader-api';
+
+export function activate(context: scipdf.PluginContext) {
+  console.log('Plugin activated');
+  
+  // Register a command
+  context.subscriptions.push(
+    scipdf.commands.registerCommand('myplugin.translate', async (text: string) => {
+      const result = await context.aiService.executeTask({
+        type: 'translation',
+        input: text,
+        options: { targetLanguage: 'zh-CN' }
+      });
+      
+      await context.annotations.createAnnotation({
+        type: 'translation',
+        content: text,
+        annotationText: result.output
+      });
+    })
+  );
+}
+
+export function deactivate() {
+  // Cleanup
+}
 ```
 
-Then navigate to `http://localhost:3000` in your browser.
+## AI Features
 
-## Built With
+### Translation
+Select any text and get instant translation using OpenAI or Azure AI services.
 
-- [PDF.js](https://mozilla.github.io/pdf.js/) - PDF rendering library by Mozilla
-- HTML5 Canvas - For rendering PDF content
-- Vanilla JavaScript - No additional frameworks required
+### Background Information
+Automatically detect and provide context for key concepts, names, and events.
 
-## How It Works
+### Summarization
+Generate concise summaries of pages or sections.
 
-The application uses PDF.js to parse and render PDF files in the browser. PDF.js is a portable PDF reading library that doesn't require any third-party plugins. It uses web technologies like HTML5 Canvas to render PDFs.
+### Smart Annotations
+AI-powered automatic annotation based on document content.
 
-## Security Note
+## Configuration
 
-All processing happens client-side in your browser. Your PDF files are not uploaded to any server, ensuring privacy and security.
+Create a configuration file at `~/.scipdfreader/config.json`:
+
+```json
+{
+  "ai": {
+    "provider": "openai",
+    "apiKey": "your-api-key",
+    "model": "gpt-3.5-turbo"
+  },
+  "annotations": {
+    "defaultColor": "#FFFF00",
+    "autoSave": true
+  },
+  "plugins": {
+    "autoLoad": true
+  }
+}
+```
+
+## Roadmap
+
+- [x] Project initialization and architecture design
+- [x] Core modules implementation
+- [ ] PDF rendering integration
+- [ ] Complete annotation system
+- [ ] AI service integration
+- [ ] Plugin marketplace
+- [ ] Cross-platform builds
+- [ ] Performance optimization
 
 ## Contributing
 
-Feel free to fork this repository and submit pull requests for improvements.
+We welcome contributions! Please see our contributing guidelines for more details.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - See [LICENSE](./LICENSE) file for details.
 
 ## Acknowledgments
 
-- Thanks to Mozilla for developing PDF.js
-- Thanks to the open-source community for making web-based PDF reading possible
+- [VS Code](https://github.com/microsoft/vscode) - For inspiring the plugin architecture
+- [PDF.js](https://mozilla.github.io/pdf.js/) - Mozilla's PDF rendering library
+- [Electron](https://www.electronjs.org/) - Cross-platform desktop app framework
+
+---
+
+**Version**: 0.0.1  
+**Status**: Early Development
