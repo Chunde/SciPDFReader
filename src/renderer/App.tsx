@@ -17,6 +17,8 @@ const App: React.FC = () => {
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [scale, setScale] = useState(1.5);
+  const [zoom, setZoom] = useState(100);
   
   console.log('[App] Rendering - currentPage:', currentPage, 'totalPages:', totalPages);
 
@@ -208,10 +210,15 @@ const App: React.FC = () => {
           <Toolbar 
             onOpenFile={handleOpenFile}
             onSave={() => console.log('Save')}
-            onZoomChange={(zoom) => console.log('Zoom:', zoom)}
+            onZoomChange={(newZoom) => {
+              console.log('[App] Zoom changed to:', newZoom);
+              setZoom(newZoom);
+              setScale(newZoom / 100);
+            }}
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
+            zoom={zoom}
           />
           
           <PDFViewer 
@@ -220,6 +227,7 @@ const App: React.FC = () => {
             currentPage={currentPage}
             onCurrentPageChange={setCurrentPage}
             onTotalPagesChange={setTotalPages}
+            scale={scale}
           />
         </div>
 

@@ -7,29 +7,26 @@ interface ToolbarProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  zoom: number;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, currentPage, totalPages, onPageChange }) => {
-  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages);
+const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, currentPage, totalPages, onPageChange, zoom }) => {
+  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'zoom:', zoom);
   
-  const [zoom, setZoom] = React.useState(100);
   const [viewMenuOpen, setViewMenuOpen] = React.useState(false);
 
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom + 25, 300);
-    setZoom(newZoom);
-    onZoomChange(newZoom / 100);
+    onZoomChange(newZoom);
   };
 
   const handleZoomOut = () => {
     const newZoom = Math.max(zoom - 25, 50);
-    setZoom(newZoom);
-    onZoomChange(newZoom / 100);
+    onZoomChange(newZoom);
   };
 
   const handleFitWidth = () => {
-    setZoom(100);
-    onZoomChange(1);
+    onZoomChange(100);
   };
 
   return (
@@ -92,8 +89,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, cur
           value={zoom}
           onChange={(e) => {
             const newZoom = parseInt(e.target.value);
-            setZoom(newZoom);
-            onZoomChange(newZoom / 100);
+            onZoomChange(newZoom);
           }}
         >
           <option value={50}>50%</option>

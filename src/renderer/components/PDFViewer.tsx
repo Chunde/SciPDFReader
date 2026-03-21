@@ -10,12 +10,12 @@ interface PDFViewerProps {
   currentPage: number;
   onCurrentPageChange: (page: number) => void;
   onTotalPagesChange: (total: number) => void;
+  scale: number;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [scale, setScale] = useState(1.5);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -87,16 +87,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     }
   };
 
-  const handleZoomIn = () => {
-    setScale(scale + 0.25);
-  };
-
-  const handleZoomOut = () => {
-    if (scale > 0.5) {
-      setScale(scale - 0.25);
-    }
-  };
-
   const handleFitWidth = () => {
     if (!canvasRef.current?.parentElement) return;
     
@@ -105,7 +95,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       pdfDoc.getPage(currentPage).then(page => {
         const viewport = page.getViewport({ scale: 1 });
         const newScale = containerWidth / viewport.width;
-        setScale(newScale);
+        // Trigger re-render with fit-width scale - parent should handle this
+        console.log('[PDFViewer] Fit width calculated scale:', newScale);
       });
     }
   };
