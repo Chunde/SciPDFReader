@@ -19,8 +19,12 @@ const App: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.5);
   const [zoom, setZoom] = useState(100);
+  const [scrollMode, setScrollMode] = useState<'fit-height' | 'scroll'>('fit-height');
+  const [pageDimensions, setPageDimensions] = useState<{width: number, height: number}>({width: 0, height: 0});
+  const [containerDimensions, setContainerDimensions] = useState<{width: number, height: number}>({width: 800, height: 600});
+  const [zoomMode, setZoomMode] = useState<'manual' | 'fit-width' | 'fit-height'>('manual');
   
-  console.log('[App] Rendering - currentPage:', currentPage, 'totalPages:', totalPages);
+  console.log('[App] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'scrollMode:', scrollMode, 'zoomMode:', zoomMode);
 
   console.log('[App] State initialized');
   console.log('[App] window object available:', typeof window !== 'undefined');
@@ -214,11 +218,34 @@ const App: React.FC = () => {
               console.log('[App] Zoom changed to:', newZoom);
               setZoom(newZoom);
               setScale(newZoom / 100);
+              setZoomMode('manual');
             }}
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             zoom={zoom}
+            scrollMode={scrollMode}
+            onScrollModeChange={setScrollMode}
+            pageDimensions={pageDimensions}
+            containerDimensions={containerDimensions}
+            onFitToWidth={() => {
+              if (pageDimensions.width > 0 && containerDimensions.width > 0) {
+                const newScale = (containerDimensions.width - 40) / pageDimensions.width;
+                console.log('[App] Fit to width: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale);
+                setScale(newScale);
+                setZoom(Math.round(newScale * 100));
+                setZoomMode('fit-width');
+              }
+            }}
+            onFitToHeight={() => {
+              if (pageDimensions.height > 0 && containerDimensions.height > 0) {
+                const newScale = (containerDimensions.height - 40) / pageDimensions.height;
+                console.log('[App] Fit to height: container:', containerDimensions.height, 'page:', pageDimensions.height, 'scale:', newScale);
+                setScale(newScale);
+                setZoom(Math.round(newScale * 100));
+                setZoomMode('fit-height');
+              }
+            }}
           />
           
           <PDFViewer 
@@ -228,6 +255,30 @@ const App: React.FC = () => {
             onCurrentPageChange={setCurrentPage}
             onTotalPagesChange={setTotalPages}
             scale={scale}
+            scrollMode={scrollMode}
+            onPageDimensionsChange={(width, height) => {
+              console.log('[App] Page dimensions changed:', width, 'x', height);
+              setPageDimensions({width, height});
+            }}
+            onContainerDimensionsChange={(width, height) => {
+              console.log('[App] Container dimensions changed:', width, 'x', height);
+              setContainerDimensions({width, height});
+              
+              // Auto-recalculate fit-to modes when window resizes
+              if (pageDimensions.width > 0 && pageDimensions.height > 0) {
+                if (zoomMode === 'fit-width') {
+                  const newScale = (width - 40) / pageDimensions.width;
+                  console.log('[App] Auto recalculating fit-to-width: container:', width, 'page:', pageDimensions.width, 'scale:', newScale);
+                  setScale(newScale);
+                  setZoom(Math.round(newScale * 100));
+                } else if (zoomMode === 'fit-height') {
+                  const newScale = (height - 40) / pageDimensions.height;
+                  console.log('[App] Auto recalculating fit-to-height: container:', height, 'page:', pageDimensions.height, 'scale:', newScale);
+                  setScale(newScale);
+                  setZoom(Math.round(newScale * 100));
+                }
+              }
+            }}
           />
         </div>
 

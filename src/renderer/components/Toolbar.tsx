@@ -8,10 +8,30 @@ interface ToolbarProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   zoom: number;
+  scrollMode: 'fit-height' | 'scroll';
+  onScrollModeChange: (mode: 'fit-height' | 'scroll') => void;
+  pageDimensions: { width: number; height: number };
+  containerDimensions: { width: number; height: number };
+  onFitToWidth: () => void;
+  onFitToHeight: () => void;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, currentPage, totalPages, onPageChange, zoom }) => {
-  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'zoom:', zoom);
+const Toolbar: React.FC<ToolbarProps> = ({ 
+  onOpenFile, 
+  onSave, 
+  onZoomChange, 
+  currentPage, 
+  totalPages, 
+  onPageChange, 
+  zoom, 
+  scrollMode, 
+  onScrollModeChange,
+  pageDimensions,
+  containerDimensions,
+  onFitToWidth,
+  onFitToHeight
+}) => {
+  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'zoom:', zoom, 'scrollMode:', scrollMode);
   
   const [viewMenuOpen, setViewMenuOpen] = React.useState(false);
 
@@ -81,6 +101,23 @@ const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, cur
       </div>
 
       <div className="toolbar-group">
+        <button 
+          className="toolbar-button" 
+          onClick={() => {
+            console.log('[Toolbar] Scroll mode toggled from:', scrollMode);
+            onScrollModeChange(scrollMode === 'fit-height' ? 'scroll' : 'fit-height');
+          }}
+          title={scrollMode === 'fit-height' ? 'Switch to Scroll Mode' : 'Switch to Fit Height Mode'}
+          style={{
+            background: scrollMode === 'scroll' ? '#4CAF50' : undefined,
+            fontWeight: scrollMode === 'scroll' ? 'bold' : 'normal'
+          }}
+        >
+          <span>📜</span> {scrollMode === 'fit-height' ? 'Fit Height' : 'Scroll'}
+        </button>
+      </div>
+
+      <div className="toolbar-group">
         <button className="toolbar-button" onClick={handleZoomOut} title="Zoom Out">
           <span>🔍</span> -
         </button>
@@ -120,13 +157,52 @@ const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, cur
         
         {viewMenuOpen && (
           <div className="dropdown-menu show">
-            <div className="dropdown-item">Single-page view</div>
-            <div className="dropdown-item">Two-page view</div>
-            <div className="dropdown-item">Enable scrolling</div>
+            <div 
+              className="dropdown-item" 
+              onClick={() => {
+                console.log('[Toolbar] Single-page view selected');
+                onScrollModeChange('fit-height');
+                onZoomChange(100);
+                setViewMenuOpen(false);
+              }}
+            >
+              Single-page view
+            </div>
+            <div className="dropdown-item" onClick={() => {
+              console.log('[Toolbar] Two-page view selected - not implemented');
+              setViewMenuOpen(false);
+            }}>
+              Two-page view
+            </div>
+            <div className="dropdown-item" onClick={() => {
+              console.log('[Toolbar] Enable scrolling selected');
+              onScrollModeChange('scroll');
+              setViewMenuOpen(false);
+            }}>
+              Enable scrolling
+            </div>
             <div className="dropdown-divider"></div>
-            <div className="dropdown-item">Actual size</div>
-            <div className="dropdown-item">Fit to width</div>
-            <div className="dropdown-item">Fit to height</div>
+            <div className="dropdown-item" onClick={() => {
+              console.log('[Toolbar] Actual size selected');
+              onZoomChange(100);
+              setViewMenuOpen(false);
+            }}>
+              Actual size
+            </div>
+            <div className="dropdown-item" onClick={() => {
+              console.log('[Toolbar] Fit to width selected');
+              onFitToWidth();
+              setViewMenuOpen(false);
+            }}>
+              Fit to width
+            </div>
+            <div className="dropdown-item" onClick={() => {
+              console.log('[Toolbar] Fit to height selected');
+              onFitToHeight();
+              setViewMenuOpen(false);
+            }}>
+              Fit to height
+            </div>
           </div>
         )}
       </div>

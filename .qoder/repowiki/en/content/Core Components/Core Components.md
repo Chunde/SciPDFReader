@@ -5,11 +5,29 @@
 - [AnnotationManager.ts](file://src/core/AnnotationManager.ts)
 - [PluginManager.ts](file://src/core/PluginManager.ts)
 - [AIServiceManager.ts](file://src/core/AIServiceManager.ts)
-- [index.ts](file://src/types/index.ts)
+- [PDFViewer.tsx](file://src/renderer/components/PDFViewer.tsx)
+- [App.tsx](file://src/renderer/App.tsx)
+- [Toolbar.tsx](file://src/renderer/components/Toolbar.tsx)
+- [Sidebar.tsx](file://src/renderer/components/Sidebar.tsx)
+- [RightPanel.tsx](file://src/renderer/components/RightPanel.tsx)
 - [main.ts](file://src/main.ts)
+- [preload.ts](file://src/preload.ts)
+- [index.ts](file://src/types/index.ts)
+- [main.css](file://src/renderer/styles/main.css)
+- [index.html](file://src/renderer/index.html)
+- [renderer.tsx](file://src/renderer/renderer.tsx)
 - [README.md](file://README.md)
 - [PLUGIN-GUIDE.md](file://PLUGIN-GUIDE.md)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated PDF viewer architecture to include comprehensive viewing functionality with zoom controls, page navigation, and scroll modes
+- Added detailed documentation for PDFViewer component with zoom (50%-300%), fit-to-width option, and page navigation controls
+- Enhanced Toolbar component documentation with zoom controls, page navigation, and scroll mode switching
+- Updated App component to demonstrate centralized state management through prop-based communication
+- Added new PDFRendererAPI interface for plugin integration with PDF operations
+- Enhanced component interaction diagrams to reflect the new PDF viewing architecture
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -17,27 +35,30 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+6. [PDF Viewing System](#pdf-viewing-system)
+7. [Dependency Analysis](#dependency-analysis)
+8. [Performance Considerations](#performance-considerations)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
+11. [Appendices](#appendices)
 
 ## Introduction
-This document focuses on the three core service managers that form the backbone of SciPDFReader:
+This document focuses on the three core service managers that form the backbone of SciPDFReader, along with the comprehensive PDF viewing system:
 - AnnotationManager: Handles annotation persistence, CRUD operations, search, and export.
 - PluginManager: Manages plugin lifecycle, exposes APIs to plugins, registers commands, and enforces security boundaries.
 - AIServiceManager: Coordinates AI service integrations, executes tasks, abstracts providers, and handles errors.
+- PDFViewer: Provides comprehensive PDF viewing with zoom controls, page navigation, scroll modes, and annotation rendering.
 
 It explains implementation details, public interfaces, method signatures, parameter specifications, configuration options, initialization patterns, dependency injection, integration scenarios, and troubleshooting approaches. The content is designed to be accessible to beginners while providing sufficient technical depth for developers extending or modifying these services.
 
 ## Project Structure
-The core services live under src/core and share type definitions in src/types. The Electron main process initializes and wires these managers together, exposing IPC handlers for the renderer process.
+The core services live under src/core and share type definitions in src/types. The Electron main process initializes and wires these managers together, exposing IPC handlers for the renderer process. The PDF viewing system consists of React components that communicate through centralized state management.
 
 ```mermaid
 graph TB
 subgraph "Electron Main Process"
 MAIN["main.ts"]
+PRELOAD["preload.ts"]
 end
 subgraph "Core Services"
 AM["AnnotationManager.ts"]
@@ -47,29 +68,50 @@ end
 subgraph "Shared Types"
 TYPES["types/index.ts"]
 end
+subgraph "PDF Viewing System"
+APP["App.tsx"]
+TOOLBAR["Toolbar.tsx"]
+PDFVIEWER["PDFViewer.tsx"]
+SIDEBAR["Sidebar.tsx"]
+RIGHTPANEL["RightPanel.tsx"]
+end
 MAIN --> AM
 MAIN --> AIM
 MAIN --> PM
+PRELOAD --> MAIN
 PM --> AM
 PM --> AIM
 AM --- TYPES
 PM --- TYPES
 AIM --- TYPES
+APP --> TOOLBAR
+APP --> PDFVIEWER
+APP --> SIDEBAR
+APP --> RIGHTPANEL
+PDFVIEWER --> TYPES
+TOOLBAR --> TYPES
 ```
 
 **Diagram sources**
-- [main.ts:44-59](file://src/main.ts#L44-L59)
-- [AnnotationManager.ts:6-19](file://src/core/AnnotationManager.ts#L6-L19)
-- [PluginManager.ts:15-35](file://src/core/PluginManager.ts#L15-L35)
-- [AIServiceManager.ts:3-11](file://src/core/AIServiceManager.ts#L3-L11)
+- [main.ts:1-160](file://src/main.ts#L1-L160)
+- [preload.ts:1-35](file://src/preload.ts#L1-L35)
+- [AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
+- [PluginManager.ts:1-247](file://src/core/PluginManager.ts#L1-L247)
+- [AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
 - [index.ts:1-224](file://src/types/index.ts#L1-L224)
+- [App.tsx:1-249](file://src/renderer/App.tsx#L1-L249)
+- [Toolbar.tsx:1-211](file://src/renderer/components/Toolbar.tsx#L1-L211)
+- [PDFViewer.tsx:1-230](file://src/renderer/components/PDFViewer.tsx#L1-L230)
+- [Sidebar.tsx:1-70](file://src/renderer/components/Sidebar.tsx#L1-L70)
+- [RightPanel.tsx:1-171](file://src/renderer/components/RightPanel.tsx#L1-L171)
 
 **Section sources**
-- [main.ts:12-59](file://src/main.ts#L12-L59)
+- [main.ts:1-160](file://src/main.ts#L1-L160)
+- [preload.ts:1-35](file://src/preload.ts#L1-L35)
 - [README.md:13-29](file://README.md#L13-L29)
 
 ## Core Components
-This section introduces each core manager’s responsibilities and how they fit into the system.
+This section introduces each core manager's responsibilities and how they fit into the system.
 
 - AnnotationManager
   - Purpose: Centralized annotation storage, CRUD operations, search, and export.
@@ -79,12 +121,12 @@ This section introduces each core manager’s responsibilities and how they fit 
 
 - PluginManager
   - Purpose: Loads, activates, and manages plugins; exposes a controlled API surface to plugins; registers and executes commands; enables lifecycle control (enable/disable/uninstall).
-  - Security: Uses a PluginContext with explicit APIs (annotations, aiService, storage) and subscription-based resource management.
+  - Security: Uses a PluginContext with explicit APIs (annotations, aiService, pdfRenderer, storage) and subscription-based resource management.
   - Lifecycle: Discovers plugins from a user directory, loads their main module, and activates on startup or demand.
   - Integration: Provides thin wrappers around AnnotationManager and AIServiceManager for plugins.
 
 - AIServiceManager
-  - Purpose: Orchestrates AI tasks (translation, summarization, background info, keyword extraction, question answering) with provider abstraction.
+  - Purpose: Orchestrates AI service integrations, executes tasks, abstracts providers, and handles errors.
   - Execution: Queues tasks, routes to provider-specific handlers, and stores results.
   - Provider abstraction: Supports OpenAI/Azure and falls back to local/mock implementations.
   - Error handling: Propagates errors from task execution and maintains queue cleanup.
@@ -97,33 +139,39 @@ This section introduces each core manager’s responsibilities and how they fit 
 - [index.ts:148-171](file://src/types/index.ts#L148-L171)
 
 ## Architecture Overview
-The managers are initialized in the Electron main process and exposed to the renderer via IPC handlers. PluginManager composes AnnotationManager and AIServiceManager into a PluginContext for plugin activation.
+The managers are initialized in the Electron main process and exposed to the renderer via IPC handlers. PluginManager composes AnnotationManager and AIServiceManager into a PluginContext for plugin activation. The PDF viewing system uses centralized state management through prop-based communication between components.
 
 ```mermaid
 sequenceDiagram
 participant Main as "Electron Main (main.ts)"
+participant Preload as "Preload (preload.ts)"
+participant App as "App Component"
+participant Toolbar as "Toolbar Component"
+participant PDFViewer as "PDFViewer Component"
+participant PM as "PluginManager"
 participant AM as "AnnotationManager"
 participant AIM as "AIServiceManager"
-participant PM as "PluginManager"
-participant Renderer as "Renderer Process"
 Main->>AM : "new AnnotationManager()"
 Main->>AIM : "new AIServiceManager()"
 Main->>PM : "new PluginManager({ annotations, aiService })"
 PM->>AM : "createAnnotationAPI(...)"
 PM->>AIM : "createAIServiceAPI(...)"
-Main->>PM : "loadInstalledPlugins()"
-Renderer->>Main : "IPC : register-command"
-Main->>PM : "registerCommand(...)"
-Renderer->>Main : "IPC : execute-ai-task"
-Main->>AIM : "executeTask(...)"
-AIM-->>Main : "AITaskResult"
-Main-->>Renderer : "Result"
+Preload->>Main : "Expose IPC handlers"
+App->>Toolbar : "Pass state props"
+App->>PDFViewer : "Pass state props"
+Toolbar->>App : "onZoomChange callback"
+App->>PDFViewer : "Update scale prop"
+PDFViewer->>Main : "readFileAsArrayBuffer IPC"
+Main->>PDFViewer : "ArrayBuffer data"
+PDFViewer->>PDFViewer : "Render with new scale"
 ```
 
 **Diagram sources**
-- [main.ts:44-59](file://src/main.ts#L44-L59)
-- [PluginManager.ts:200-220](file://src/core/PluginManager.ts#L200-L220)
-- [AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
+- [main.ts:44-63](file://src/main.ts#L44-L63)
+- [preload.ts:5-34](file://src/preload.ts#L5-L34)
+- [App.tsx:213-234](file://src/renderer/App.tsx#L213-L234)
+- [Toolbar.tsx:20-32](file://src/renderer/components/Toolbar.tsx#L20-L32)
+- [PDFViewer.tsx:44-68](file://src/renderer/components/PDFViewer.tsx#L44-L68)
 
 ## Detailed Component Analysis
 
@@ -174,7 +222,7 @@ Security considerations:
 
 **Section sources**
 - [AnnotationManager.ts:6-172](file://src/core/AnnotationManager.ts#L6-L172)
-- [main.ts:85-97](file://src/main.ts#L85-L97)
+- [main.ts:127-139](file://src/main.ts#L127-L139)
 - [PluginManager.ts:202-211](file://src/core/PluginManager.ts#L202-L211)
 - [index.ts:36-47](file://src/types/index.ts#L36-L47)
 
@@ -229,7 +277,7 @@ Public interface and method signatures:
 API exposure to plugins:
 - annotations: Thin wrapper around AnnotationManager methods.
 - aiService: Thin wrapper around AIServiceManager methods.
-- pdfRenderer: Placeholder API for PDF operations.
+- pdfRenderer: API for PDF operations including document loading, page rendering, and selection handling.
 - storage: Placeholder plugin storage.
 
 Lifecycle management:
@@ -245,6 +293,7 @@ Practical examples:
 - Renderer registers commands via IPC; main.ts delegates to PluginManager.
 - Plugins use aiService.initialize() and executeTask() to perform AI operations.
 - Plugins use annotations API to persist results.
+- Plugins use pdfRenderer API to interact with PDF documents.
 
 Initialization patterns:
 - Constructed with dependency injection of AnnotationManager and AIServiceManager.
@@ -252,7 +301,7 @@ Initialization patterns:
 
 **Section sources**
 - [PluginManager.ts:15-247](file://src/core/PluginManager.ts#L15-L247)
-- [main.ts:52-58](file://src/main.ts#L52-L58)
+- [main.ts:55-62](file://src/main.ts#L55-L62)
 - [PLUGIN-GUIDE.md:104-140](file://PLUGIN-GUIDE.md#L104-L140)
 
 #### Class Diagram
@@ -374,40 +423,120 @@ class AIServiceManager {
 - [AIServiceManager.ts:3-214](file://src/core/AIServiceManager.ts#L3-L214)
 - [index.ts:49-84](file://src/types/index.ts#L49-L84)
 
-### Integration Scenarios and Examples
-- Renderer-to-Manager flows:
-  - Save annotation: Renderer -> IPC handler -> AnnotationManager.createAnnotation.
-  - Execute AI task: Renderer -> IPC handler -> AIServiceManager.executeTask.
-  - Register command: Renderer -> IPC handler -> PluginManager.registerCommand.
-- Plugin-to-Manager flows:
-  - Plugin activation receives PluginContext with aiService and annotations APIs.
-  - Plugin performs AI tasks and creates annotations using exposed APIs.
+## PDF Viewing System
+
+### PDFViewer Component
+The PDFViewer component provides comprehensive PDF viewing functionality with advanced features:
+
+**Core Features:**
+- Zoom controls with 50%-300% range and fit-to-width option
+- Page navigation with previous/next buttons and page input
+- Dual scroll modes: fit-height and scroll modes
+- Real-time annotation rendering overlay
+- Loading states and error handling
+
+**State Management:**
+- Centralized state in App component with prop-based communication
+- Scale (zoom level) managed as a numeric percentage
+- Current page tracking with bounds checking
+- Scroll mode switching between fit-height and scroll
+
+**Rendering Modes:**
+- **Fit-height mode**: Single page centered with adjustable zoom
+- **Scroll mode**: All pages rendered vertically with individual canvases
+
+**Implementation Details:**
+- Uses pdfjs-dist library with worker-based rendering
+- Electron IPC integration for file reading
+- Responsive design with container-based scaling
+- Efficient canvas rendering with viewport calculations
+
+**Section sources**
+- [PDFViewer.tsx:17-230](file://src/renderer/components/PDFViewer.tsx#L17-L230)
+- [App.tsx:18-23](file://src/renderer/App.tsx#L18-L23)
+- [Toolbar.tsx:20-32](file://src/renderer/components/Toolbar.tsx#L20-L32)
+
+### Toolbar Component
+The Toolbar provides comprehensive PDF viewing controls:
+
+**Zoom Controls:**
+- Incremental zoom with 25% steps (50%-300%)
+- Direct zoom selection dropdown
+- Fit-width button for automatic scaling
+
+**Page Navigation:**
+- Previous/next page buttons with boundary checking
+- Page input field with validation
+- Total pages display with dynamic updates
+
+**View Options:**
+- Scroll mode toggle (fit-height vs scroll)
+- View menu with additional options
+- Highlight, underline, note, and translate tools
+
+**State Synchronization:**
+- Bidirectional communication with App component
+- Real-time zoom level updates
+- Page navigation state management
+
+**Section sources**
+- [Toolbar.tsx:15-211](file://src/renderer/components/Toolbar.tsx#L15-L211)
+- [App.tsx:213-224](file://src/renderer/App.tsx#L213-L224)
+
+### App Component - Centralized State Management
+The App component serves as the central state manager for the PDF viewing system:
+
+**State Variables:**
+- `currentDocument`: Active PDF document metadata
+- `annotations`: Complete annotation collection
+- `currentPage`: Current page number (1-indexed)
+- `totalPages`: Document page count
+- `scale`: Canvas scaling factor (zoom level)
+- `zoom`: User-facing zoom percentage
+- `scrollMode`: Current viewing mode ('fit-height' | 'scroll')
+
+**Communication Pattern:**
+- Props-based communication from App to child components
+- Callback-based updates from child components to App
+- Centralized state prevents prop drilling issues
+
+**Event Handling:**
+- File loading through Electron IPC
+- Annotation creation and management
+- Toolbar control callbacks
+- Window event listeners for cleanup
+
+**Section sources**
+- [App.tsx:10-249](file://src/renderer/App.tsx#L10-L249)
+
+### Component Interaction Flow
+The PDF viewing system demonstrates modern React patterns with centralized state management:
 
 ```mermaid
 sequenceDiagram
-participant Renderer as "Renderer"
+participant App as "App Component"
+participant Toolbar as "Toolbar Component"
+participant PDFViewer as "PDFViewer Component"
 participant Main as "Electron Main"
-participant PM as "PluginManager"
-participant AIM as "AIServiceManager"
-participant AM as "AnnotationManager"
-Renderer->>Main : "IPC : register-command"
-Main->>PM : "registerCommand(commandId, callback)"
-PM-->>Renderer : "Disposable"
-Renderer->>Main : "IPC : execute-ai-task"
-Main->>AIM : "executeTask(task)"
-AIM-->>Main : "AITaskResult"
-Main-->>Renderer : "Result"
-Renderer->>Main : "IPC : save-annotation"
-Main->>AM : "createAnnotation(annotation)"
-AM-->>Main : "Annotation"
-Main-->>Renderer : "Annotation"
+participant FS as "File System"
+App->>Toolbar : "Pass state props"
+App->>PDFViewer : "Pass state props"
+Toolbar->>App : "onZoomChange callback"
+App->>PDFViewer : "Update scale prop"
+PDFViewer->>Main : "readFileAsArrayBuffer IPC"
+Main->>FS : "Read PDF file"
+FS-->>Main : "ArrayBuffer data"
+Main-->>PDFViewer : "ArrayBuffer data"
+PDFViewer->>PDFViewer : "Render with new scale"
+PDFViewer->>App : "onTotalPagesChange callback"
+App->>Toolbar : "Update page info"
 ```
 
 **Diagram sources**
-- [main.ts:85-117](file://src/main.ts#L85-L117)
-- [PluginManager.ts:120-142](file://src/core/PluginManager.ts#L120-L142)
-- [AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
-- [AnnotationManager.ts:46-59](file://src/core/AnnotationManager.ts#L46-L59)
+- [App.tsx:213-234](file://src/renderer/App.tsx#L213-L234)
+- [Toolbar.tsx:20-32](file://src/renderer/components/Toolbar.tsx#L20-L32)
+- [PDFViewer.tsx:44-68](file://src/renderer/components/PDFViewer.tsx#L44-L68)
+- [main.ts:105-113](file://src/main.ts#L105-L113)
 
 ## Dependency Analysis
 - AnnotationManager depends on:
@@ -421,6 +550,11 @@ Main-->>Renderer : "Annotation"
 - AIServiceManager depends on:
   - Types for AIServiceConfig, AITask, AITaskResult, and AITaskType.
   - Provider abstraction for OpenAI/Azure/local/custom.
+- PDFViewer depends on:
+  - pdfjs-dist library for PDF rendering.
+  - Electron IPC for file access.
+  - React hooks for state management.
+  - CSS classes for styling.
 
 ```mermaid
 graph LR
@@ -432,6 +566,15 @@ AIM --> TYPES
 MAIN["main.ts"] --> AM
 MAIN --> AIM
 MAIN --> PM
+PRELOAD["preload.ts"] --> MAIN
+APP["App.tsx"] --> TOOLBAR["Toolbar.tsx"]
+APP --> PDFVIEWER["PDFViewer.tsx"]
+APP --> SIDEBAR["Sidebar.tsx"]
+APP --> RIGHTPANEL["RightPanel.tsx"]
+PDFVIEWER --> TYPES
+TOOLBAR --> TYPES
+PDFVIEWER --> MAIN
+PRELOAD --> MAIN
 ```
 
 **Diagram sources**
@@ -439,13 +582,20 @@ MAIN --> PM
 - [PluginManager.ts:1-6](file://src/core/PluginManager.ts#L1-L6)
 - [AIServiceManager.ts:1-2](file://src/core/AIServiceManager.ts#L1-L2)
 - [main.ts:3-5](file://src/main.ts#L3-L5)
+- [preload.ts:1-5](file://src/preload.ts#L1-L5)
 - [index.ts:1-224](file://src/types/index.ts#L1-L224)
+- [App.tsx:1-249](file://src/renderer/App.tsx#L1-L249)
+- [Toolbar.tsx:1-211](file://src/renderer/components/Toolbar.tsx#L1-L211)
+- [PDFViewer.tsx:1-230](file://src/renderer/components/PDFViewer.tsx#L1-L230)
+- [Sidebar.tsx:1-70](file://src/renderer/components/Sidebar.tsx#L1-L70)
+- [RightPanel.tsx:1-171](file://src/renderer/components/RightPanel.tsx#L1-L171)
 
 **Section sources**
 - [AnnotationManager.ts:1-5](file://src/core/AnnotationManager.ts#L1-L5)
 - [PluginManager.ts:1-6](file://src/core/PluginManager.ts#L1-L6)
 - [AIServiceManager.ts:1-2](file://src/core/AIServiceManager.ts#L1-L2)
 - [main.ts:3-5](file://src/main.ts#L3-L5)
+- [preload.ts:1-5](file://src/preload.ts#L1-L5)
 
 ## Performance Considerations
 - AnnotationManager:
@@ -457,15 +607,17 @@ MAIN --> PM
 - AIServiceManager:
   - Single-threaded task execution; consider concurrency limits if many tasks arrive rapidly.
   - Provider fallback avoids network overhead; production deployments should integrate real providers.
-
-[No sources needed since this section provides general guidance]
+- PDFViewer:
+  - Canvas rendering performance depends on zoom level and page complexity.
+  - Scroll mode renders all pages at once; consider virtualization for large documents.
+  - Worker-based rendering prevents UI blocking but consumes memory for multiple canvases.
 
 ## Troubleshooting Guide
 - AnnotationManager
   - Symptom: Annotations not saved across sessions.
     - Verify data directory exists and is writable under user profile.
     - Confirm loadAnnotations is invoked during initialization.
-  - Symptom: Update fails with “not found”.
+  - Symptom: Update fails with "not found".
     - Ensure the ID exists and is passed correctly.
   - Symptom: Export returns unexpected format.
     - Confirm format parameter is one of supported values.
@@ -480,12 +632,23 @@ MAIN --> PM
     - Verify PluginContext was constructed with required dependencies.
 
 - AIServiceManager
-  - Symptom: “Not initialized” error.
+  - Symptom: "Not initialized" error.
     - Ensure initialize() is called with a valid AIServiceConfig before executeTask().
   - Symptom: Unknown task type error.
     - Verify AITaskType is one of supported values.
   - Symptom: Batch execution returns partial failures.
     - Inspect individual task metadata for error details.
+
+- PDFViewer
+  - Symptom: PDF fails to load.
+    - Check Electron IPC connection and file path accessibility.
+    - Verify pdfjs-dist worker is properly loaded.
+  - Symptom: Canvas rendering issues.
+    - Ensure canvas element is available and properly sized.
+    - Check zoom level constraints (50%-300%).
+  - Symptom: Scroll mode performance problems.
+    - Large documents may cause memory issues in scroll mode.
+    - Consider switching to fit-height mode for better performance.
 
 **Section sources**
 - [AnnotationManager.ts:61-70](file://src/core/AnnotationManager.ts#L61-L70)
@@ -495,16 +658,17 @@ MAIN --> PM
 - [AIServiceManager.ts:8-11](file://src/core/AIServiceManager.ts#L8-L11)
 - [AIServiceManager.ts:44-46](file://src/core/AIServiceManager.ts#L44-L46)
 - [AIServiceManager.ts:65-74](file://src/core/AIServiceManager.ts#L65-L74)
+- [PDFViewer.tsx:44-68](file://src/renderer/components/PDFViewer.tsx#L44-L68)
+- [PDFViewer.tsx:120-142](file://src/renderer/components/PDFViewer.tsx#L120-L142)
 
 ## Conclusion
-The three core managers—AnnotationManager, PluginManager, and AIServiceManager—provide a robust foundation for SciPDFReader:
+The three core managers—AnnotationManager, PluginManager, and AIServiceManager—provide a robust foundation for SciPDFReader, enhanced by the comprehensive PDF viewing system:
 - AnnotationManager offers reliable persistence and flexible export.
 - PluginManager delivers a secure, extensible plugin ecosystem with clear lifecycles.
 - AIServiceManager abstracts provider differences and encapsulates error handling.
+- PDFViewer provides modern, feature-rich PDF viewing with zoom controls, page navigation, and dual scroll modes.
 
-Together, they enable powerful AI-assisted annotation workflows and a thriving plugin community, while maintaining a clean separation of concerns and predictable initialization patterns.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The centralized state management approach in the App component demonstrates best practices for React applications, while the PDF viewing system showcases advanced techniques for handling complex UI interactions and performance optimization.
 
 ## Appendices
 
@@ -515,21 +679,28 @@ Together, they enable powerful AI-assisted annotation workflows and a thriving p
   - AIServiceConfig: provider, apiKey, endpoint, model, temperature.
 - PluginManager
   - Plugins directory: Derived from APPDATA/HOME; stored under a .scipdfreader/plugins subfolder.
+- PDFViewer
+  - Zoom range: 50%-300% with 25% increments.
+  - Scroll modes: fit-height (single page) and scroll (all pages).
+  - Page navigation: 1-indexed page numbers with boundary validation.
 
 **Section sources**
 - [AnnotationManager.ts:16-18](file://src/core/AnnotationManager.ts#L16-L18)
 - [AIServiceManager.ts:8-11](file://src/core/AIServiceManager.ts#L8-L11)
 - [PluginManager.ts:37-40](file://src/core/PluginManager.ts#L37-L40)
-- [README.md:122-139](file://README.md#L122-L139)
+- [Toolbar.tsx:20-32](file://src/renderer/components/Toolbar.tsx#L20-L32)
+- [PDFViewer.tsx:152-164](file://src/renderer/components/PDFViewer.tsx#L152-L164)
 
 ### Initialization Patterns and Dependency Injection
 - Electron main process constructs managers and injects dependencies into PluginManager.
 - AnnotationManager and AIServiceManager are instantiated independently and passed to PluginManager.
 - PluginManager ensures plugin directories exist and loads manifests.
+- PDFViewer uses pdfjs-dist with worker-based architecture for efficient rendering.
 
 **Section sources**
-- [main.ts:44-59](file://src/main.ts#L44-L59)
+- [main.ts:44-63](file://src/main.ts#L44-L63)
 - [PluginManager.ts:21-35](file://src/core/PluginManager.ts#L21-L35)
+- [PDFViewer.tsx:25-28](file://src/renderer/components/PDFViewer.tsx#L25-L28)
 
 ### IPC Handlers and Usage
 - Renderer invokes IPC handlers to:
@@ -538,6 +709,30 @@ Together, they enable powerful AI-assisted annotation workflows and a thriving p
   - Execute AI tasks via execute-ai-task.
   - Register commands via register-command.
   - Register custom annotation types via register-annotation-type.
+  - Load PDF files via load-pdf.
+  - Read files as ArrayBuffer via read-file-as-array-buffer.
+  - Open file dialogs via show-open-dialog.
 
 **Section sources**
-- [main.ts:85-117](file://src/main.ts#L85-L117)
+- [main.ts:84-160](file://src/main.ts#L84-L160)
+- [preload.ts:5-34](file://src/preload.ts#L5-L34)
+
+### PDFRendererAPI Interface
+The PDFRendererAPI provides plugins with comprehensive PDF manipulation capabilities:
+
+**Methods:**
+- loadDocument(filePath): Loads and parses PDF document metadata.
+- renderPage(pageNumber, options): Renders specific page to canvas context.
+- getPageInfo(pageNumber): Retrieves page dimensions and properties.
+- extractText(pageNumber): Extracts text content from specified page.
+- getSelection(): Gets current text selection information.
+- setZoom(level): Sets zoom level for rendering.
+
+**Usage Context:**
+- Plugins receive PDFRendererAPI through PluginContext.
+- Enables programmatic PDF interaction within plugin workflows.
+- Supports both simple rendering and advanced text extraction.
+
+**Section sources**
+- [index.ts:157-164](file://src/types/index.ts#L157-L164)
+- [PluginManager.ts:212-220](file://src/core/PluginManager.ts#L212-L220)
