@@ -99,24 +99,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           <span>▶</span>
         </button>
       </div>
-
-      <div className="toolbar-group">
-        <button 
-          className="toolbar-button" 
-          onClick={() => {
-            console.log('[Toolbar] Scroll mode toggled from:', scrollMode);
-            onScrollModeChange(scrollMode === 'fit-height' ? 'scroll' : 'fit-height');
-          }}
-          title={scrollMode === 'fit-height' ? 'Switch to Scroll Mode' : 'Switch to Fit Height Mode'}
-          style={{
-            background: scrollMode === 'scroll' ? '#4CAF50' : undefined,
-            fontWeight: scrollMode === 'scroll' ? 'bold' : 'normal'
-          }}
-        >
-          <span>📜</span> {scrollMode === 'fit-height' ? 'Fit Height' : 'Scroll'}
-        </button>
-      </div>
-
       <div className="toolbar-group">
         <button className="toolbar-button" onClick={handleZoomOut} title="Zoom Out">
           <span>🔍</span> -
@@ -139,9 +121,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </select>
         <button className="toolbar-button" onClick={handleZoomIn} title="Zoom In">
           <span>🔍</span> +
-        </button>
-        <button className="toolbar-button" onClick={handleFitWidth} title="Fit Width">
-          <span>↔</span> Fit Width
         </button>
       </div>
 
