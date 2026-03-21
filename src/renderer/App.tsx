@@ -8,11 +8,17 @@ import Toolbar from './components/Toolbar';
 declare const window: any;
 
 const App: React.FC = () => {
+  console.log('[App] Component rendered');
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [currentDocument, setCurrentDocument] = useState<any>(null);
   const [annotations, setAnnotations] = useState<any[]>([]);
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
+
+  console.log('[App] State initialized');
+  console.log('[App] window object available:', typeof window !== 'undefined');
+  console.log('[App] window.api:', window?.api);
 
   useEffect(() => {
     // Listen for PDF load events from file menu
@@ -77,33 +83,46 @@ const App: React.FC = () => {
 
   const handleOpenFile = () => {
     console.log('[FileMenu] Open File clicked');
-    console.log('[FileMenu] window.api exists:', !!window.api);
-    console.log('[FileMenu] window.api.openFileDialog exists:', !!window.api?.openFileDialog);
+    console.log('[FileMenu] window object:', window);
+    console.log('[FileMenu] window.api:', window.api);
     
-    const promise = window.api?.openFileDialog();
-    console.log('[FileMenu] Got promise:', !!promise);
-    
-    if (promise) {
-      promise.then((result: any) => {
-        console.log('[FileMenu] OpenFileDialog result:', result);
-        if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
-          const filePath = result.filePaths[0];
-          console.log('[FileMenu] Selected file:', filePath);
-          loadPDF(filePath);
-        } else {
-          console.log('[FileMenu] Dialog was canceled or no file selected');
-        }
-        // Close menu after handling the result
-        setFileMenuOpen(false);
-      }).catch((error: any) => {
-        console.error('[FileMenu] Error opening file dialog:', error);
-        // Close menu even on error
-        setFileMenuOpen(false);
-      });
-    } else {
-      console.error('[FileMenu] window.api.openFileDialog is not available');
+    if (!window.api) {
+      console.error('[FileMenu] window.api is undefined!');
       setFileMenuOpen(false);
+      return;
     }
+    
+    if (!window.api.openFileDialog) {
+      console.error('[FileMenu] window.api.openFileDialog is undefined!');
+      console.log('[FileMenu] Available api methods:', Object.keys(window.api || {}));
+      setFileMenuOpen(false);
+      return;
+    }
+    
+    console.log('[FileMenu] Calling openFileDialog...');
+    const promise = window.api.openFileDialog();
+    console.log('[FileMenu] Got promise:', promise);
+    
+    if (!promise || typeof promise.then !== 'function') {
+      console.error('[FileMenu] openFileDialog did not return a valid promise!');
+      setFileMenuOpen(false);
+      return;
+    }
+    
+    promise.then((result: any) => {
+      console.log('[FileMenu] OpenFileDialog SUCCESS result:', result);
+      if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
+        const filePath = result.filePaths[0];
+        console.log('[FileMenu] Selected file:', filePath);
+        loadPDF(filePath);
+      } else {
+        console.log('[FileMenu] Dialog was canceled or no file selected');
+      }
+      setFileMenuOpen(false);
+    }).catch((error: any) => {
+      console.error('[FileMenu] OpenFileDialog ERROR:', error);
+      setFileMenuOpen(false);
+    });
   };
 
   const handleSave = () => {
@@ -183,7 +202,7 @@ const App: React.FC = () => {
 
         <div className="pdf-viewer-container">
           <Toolbar 
-            onOpenFile={() => window.api?.openFileDialog()}
+            onOpenFile={handleOpenFile}
             onSave={() => console.log('Save')}
             onZoomChange={(zoom) => console.log('Zoom:', zoom)}
           />

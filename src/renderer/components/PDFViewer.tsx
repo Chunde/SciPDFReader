@@ -18,8 +18,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) =
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    // Set worker source
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.min.js';
+    // Set worker source - use relative path from renderer/index.html location
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.min.js';
   }, []);
 
   useEffect(() => {
