@@ -38,13 +38,18 @@ const App: React.FC = () => {
   }, []);
 
   const loadPDF = async (filePath: string) => {
+    console.log('[App] Loading PDF from:', filePath);
     try {
       const result = await window.api?.loadPDF(filePath);
-      if (result) {
+      console.log('[App] Load result:', result);
+      if (result && result.success) {
         setCurrentDocument(result);
+        console.log('[App] Document set successfully');
+      } else {
+        console.error('[App] Failed to load PDF:', result?.error);
       }
     } catch (error) {
-      console.error('Failed to load PDF:', error);
+      console.error('[App] Failed to load PDF:', error);
     }
   };
 
@@ -72,8 +77,33 @@ const App: React.FC = () => {
 
   const handleOpenFile = () => {
     console.log('[FileMenu] Open File clicked');
-    window.api?.openFileDialog();
-    setFileMenuOpen(false);
+    console.log('[FileMenu] window.api exists:', !!window.api);
+    console.log('[FileMenu] window.api.openFileDialog exists:', !!window.api?.openFileDialog);
+    
+    const promise = window.api?.openFileDialog();
+    console.log('[FileMenu] Got promise:', !!promise);
+    
+    if (promise) {
+      promise.then((result: any) => {
+        console.log('[FileMenu] OpenFileDialog result:', result);
+        if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
+          const filePath = result.filePaths[0];
+          console.log('[FileMenu] Selected file:', filePath);
+          loadPDF(filePath);
+        } else {
+          console.log('[FileMenu] Dialog was canceled or no file selected');
+        }
+        // Close menu after handling the result
+        setFileMenuOpen(false);
+      }).catch((error: any) => {
+        console.error('[FileMenu] Error opening file dialog:', error);
+        // Close menu even on error
+        setFileMenuOpen(false);
+      });
+    } else {
+      console.error('[FileMenu] window.api.openFileDialog is not available');
+      setFileMenuOpen(false);
+    }
   };
 
   const handleSave = () => {

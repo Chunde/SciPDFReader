@@ -138,7 +138,7 @@ subgraph "Testing & Documentation"
 TEST["Testing Infrastructure<br/>TESTING.md"]
 DOC["Design Docs<br/>DESIGN.md"]
 QR["Quick Reference<br/>QUICK_REFERENCE.md"]
-END
+end
 M --> PM
 M --> AM
 M --> AIM

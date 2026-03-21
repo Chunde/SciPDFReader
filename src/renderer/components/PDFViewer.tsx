@@ -23,7 +23,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) =
   }, []);
 
   useEffect(() => {
+    console.log('[PDFViewer] Document prop changed:', document);
     if (document?.path) {
+      console.log('[PDFViewer] Loading PDF from path:', document.path);
       loadPDF(document.path);
     }
   }, [document]);
@@ -35,21 +37,25 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) =
   }, [currentPage, scale, pdfDoc]);
 
   const loadPDF = async (path: string) => {
+    console.log('[PDFViewer] loadPDF called with path:', path);
     try {
       setIsLoading(true);
       
       // Read file using Electron IPC
+      console.log('[PDFViewer] Calling readFileAsArrayBuffer...');
       const arrayBuffer = await window.api?.readFileAsArrayBuffer(path);
+      console.log('[PDFViewer] Array buffer received, length:', arrayBuffer?.byteLength);
       
       const loadingTask = pdfjsLib.getDocument(arrayBuffer);
       const pdf = await loadingTask.promise;
+      console.log('[PDFViewer] PDF loaded, pages:', pdf.numPages);
       
       setPdfDoc(pdf);
       setTotalPages(pdf.numPages);
       setCurrentPage(1);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error loading PDF:', error);
+      console.error('[PDFViewer] Error loading PDF:', error);
       setIsLoading(false);
     }
   };

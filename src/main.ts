@@ -113,20 +113,15 @@ ipcMain.handle('read-file-as-array-buffer', async (event, filePath: string) => {
 });
 
 ipcMain.handle('show-open-dialog', async () => {
+  console.log('[Main] Show open dialog called');
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openFile'],
     filters: [
       { name: 'PDF Files', extensions: ['pdf'] }
     ]
   });
-  
-  if (!result.canceled && result.filePaths.length > 0) {
-    const filePath = result.filePaths[0];
-    mainWindow?.webContents.send('load-pdf', filePath);
-    return filePath;
-  }
-  
-  return null;
+  console.log('[Main] Open dialog result:', result);
+  return result;
 });
 
 ipcMain.handle('save-annotation', async (event, annotation: any) => {
