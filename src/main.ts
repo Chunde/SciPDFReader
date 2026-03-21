@@ -26,9 +26,11 @@ function createWindow() {
     backgroundColor: '#f0f0f0'
   });
 
-  // Load the index.html
-  const indexPath = path.join(app.getAppPath(), 'src', 'renderer', 'index.html');
-  mainWindow.loadFile(indexPath);
+  // Load the index.html  
+  const indexPath = path.join(__dirname, '../src/renderer/index.html');
+  console.log('[Main] __dirname:', __dirname);
+  console.log('[Main] Loading index.html from:', indexPath);
+  mainWindow.loadURL(`file://${indexPath}`);
 
   // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {

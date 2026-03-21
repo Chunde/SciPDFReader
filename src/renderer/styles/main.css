@@ -33,16 +33,12 @@ body {
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    /* Debug */
-    outline: 3px solid yellow;
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 16px;
-    /* Debug */
-    outline: 2px solid cyan;
 }
 
 .app-title {
@@ -65,8 +61,6 @@ body {
     gap: 3px;
     border-radius: 4px;
     transition: background-color 0.2s;
-    /* Debug: Make it visible */
-    outline: 2px solid red;
 }
 
 .hamburger-btn:hover {
