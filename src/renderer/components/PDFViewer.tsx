@@ -7,15 +7,16 @@ declare const window: any;
 interface PDFViewerProps {
   document: any;
   onAnnotationCreate: (annotation: any) => void;
+  currentPage: number;
+  onCurrentPageChange: (page: number) => void;
+  onTotalPagesChange: (total: number) => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.5);
   const [isLoading, setIsLoading] = useState(false);
-  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     // Set worker source - use relative path from renderer/index.html location
@@ -51,8 +52,10 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) =
       console.log('[PDFViewer] PDF loaded, pages:', pdf.numPages);
       
       setPdfDoc(pdf);
-      setTotalPages(pdf.numPages);
-      setCurrentPage(1);
+      console.log('[PDFViewer] Setting total pages to:', pdf.numPages);
+      onTotalPagesChange(pdf.numPages);
+      console.log('[PDFViewer] Total pages set successfully');
+      onCurrentPageChange(1);
       setIsLoading(false);
     } catch (error) {
       console.error('[PDFViewer] Error loading PDF:', error);
@@ -84,18 +87,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) =
     }
   };
 
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
   const handleZoomIn = () => {
     setScale(scale + 0.25);
   };
@@ -110,7 +101,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate }) =
     if (!canvasRef.current?.parentElement) return;
     
     const containerWidth = canvasRef.current.parentElement.clientWidth - 40;
-    if (pdfDoc && currentPage <= totalPages) {
+    if (pdfDoc && currentPage >= 1) {
       pdfDoc.getPage(currentPage).then(page => {
         const viewport = page.getViewport({ scale: 1 });
         const newScale = containerWidth / viewport.width;

@@ -5,13 +5,25 @@
 - [README.md](file://README.md)
 - [package.json](file://package.json)
 - [src/main.ts](file://src/main.ts)
+- [src/preload.ts](file://src/preload.ts)
 - [src/core/AnnotationManager.ts](file://src/core/AnnotationManager.ts)
 - [src/core/AIServiceManager.ts](file://src/core/AIServiceManager.ts)
 - [src/core/PluginManager.ts](file://src/core/PluginManager.ts)
 - [src/types/index.ts](file://src/types/index.ts)
+- [src/renderer/App.tsx](file://src/renderer/App.tsx)
+- [src/renderer/components/PDFViewer.tsx](file://src/renderer/components/PDFViewer.tsx)
+- [src/renderer/components/RightPanel.tsx](file://src/renderer/components/RightPanel.tsx)
+- [webpack.config.js](file://webpack.config.js)
 - [PLUGIN-GUIDE.md](file://PLUGIN-GUIDE.md)
-- [DESIGN.md](file://DESIGN.md)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Enhanced debugging guidance section with comprehensive console logging infrastructure details
+- Added detailed troubleshooting steps for Electron's development tools and console logging
+- Expanded error handling documentation with specific logging patterns and diagnostic approaches
+- Updated plugin loading failures section with improved error logging and validation
+- Enhanced performance troubleshooting with logging-based diagnostics
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -26,7 +38,9 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
-This Troubleshooting and FAQ section provides practical guidance for resolving common issues encountered by SciPDFReader users and developers. It covers installation problems, plugin loading failures, performance issues, platform-specific challenges, debugging techniques, and recovery procedures. The content is grounded in the repository’s source files and aims to help users diagnose and fix problems efficiently.
+This Troubleshooting and FAQ section provides practical guidance for resolving common issues encountered by SciPDFReader users and developers. It covers installation problems, plugin loading failures, performance issues, platform-specific challenges, debugging techniques, and recovery procedures. The content is grounded in the repository's source files and aims to help users diagnose and fix problems efficiently.
+
+**Updated** Enhanced with comprehensive console logging infrastructure and improved error handling throughout the application for better troubleshooting and diagnostics.
 
 ## Installation Troubleshooting
 Common installation issues often stem from environment mismatches, dependency conflicts, and permission errors. Follow these steps to resolve them systematically.
@@ -61,7 +75,7 @@ Common installation issues often stem from environment mismatches, dependency co
 Plugin loading failures typically arise from invalid manifests, API compatibility issues, or security restrictions. Use the diagnostic steps below to identify and fix the problem.
 
 - Validate plugin manifest
-  - Ensure the plugin’s manifest includes required fields such as name, displayName, version, publisher, engines.scipdfreader, and main.
+  - Ensure the plugin's manifest includes required fields such as name, displayName, version, publisher, engines.scipdfreader, and main.
   - Verify the engines field specifies a compatible SciPDFReader version.
   - Confirm activationEvents are correctly defined (e.g., wildcard or startup events).
 
@@ -72,7 +86,7 @@ Plugin loading failures typically arise from invalid manifests, API compatibilit
 
 - Review plugin activation logs
   - The application logs plugin load and activation attempts. Look for error messages indicating failure to load or activate the plugin.
-  - If a plugin fails to activate, verify that the plugin’s main entry point exports an activate function and that it handles the plugin context correctly.
+  - If a plugin fails to activate, verify that the plugin's main entry point exports an activate function and that it handles the plugin context correctly.
 
 - Resolve API compatibility
   - Ensure the plugin targets the correct API surface. The plugin context exposes annotations, pdfRenderer, aiService, and storage APIs.
@@ -81,6 +95,8 @@ Plugin loading failures typically arise from invalid manifests, API compatibilit
 - Security restrictions
   - Plugins run in a sandboxed environment. Avoid direct Node.js filesystem access from plugins; use the provided APIs instead.
   - If a plugin requires external resources, ensure they are packaged or fetched securely.
+
+**Updated** Enhanced with improved error logging infrastructure for better plugin troubleshooting.
 
 **Section sources**
 - [src/core/PluginManager.ts:48-104](file://src/core/PluginManager.ts#L48-L104)
@@ -108,8 +124,9 @@ Performance problems can manifest as slow PDF rendering, memory leaks in annotat
   - Limit concurrent operations to prevent CPU and memory saturation.
   - Use streaming for large file operations to reduce peak memory usage.
 
+**Updated** Enhanced with comprehensive console logging infrastructure for performance diagnostics and monitoring.
+
 **Section sources**
-- [DESIGN.md:531-549](file://DESIGN.md#L531-L549)
 - [src/core/AnnotationManager.ts:153-170](file://src/core/AnnotationManager.ts#L153-L170)
 - [src/core/AIServiceManager.ts:58-75](file://src/core/AIServiceManager.ts#L58-L75)
 
@@ -136,14 +153,25 @@ Platform differences can cause file path issues, executable permissions, and sys
 - [src/core/AnnotationManager.ts:15-19](file://src/core/AnnotationManager.ts#L15-L19)
 
 ## Debugging Guidance
-Effective debugging involves using Electron’s development tools, console logging, and structured error analysis.
+Effective debugging involves using Electron's development tools, console logging, and structured error analysis. The application now features comprehensive console logging infrastructure for enhanced troubleshooting.
 
 - Enable Developer Tools
   - Developer Tools open automatically in development mode. Use them to inspect the renderer process, network requests, and console logs.
+  - Access via main window menu or by pressing F12 in development mode.
 
-- Console logging
-  - The application logs plugin load and activation attempts, file operations, and AI task execution. Use these logs to trace failures and pinpoint issues.
-  - Add targeted console logs in plugins to capture context and state during execution.
+- Console logging infrastructure
+  - **Main process logging**: The main process logs critical operations including window creation, file operations, plugin loading, and AI service initialization.
+  - **Renderer process logging**: Comprehensive logging throughout the React components including PDF loading, annotation operations, and user interactions.
+  - **IPC communication logging**: Detailed logging of inter-process communication between main and renderer processes.
+  - **Plugin lifecycle logging**: Complete plugin loading, activation, and deactivation lifecycle events are logged for debugging.
+
+- Key logging patterns to look for:
+  - `[Main]` - Main process operations and file system interactions
+  - `[App]` - React component lifecycle and user interactions
+  - `[PDFViewer]` - PDF loading and rendering operations
+  - `[PluginManager]` - Plugin loading and activation status
+  - `[AnnotationManager]` - Annotation CRUD operations
+  - `[AIServiceManager]` - AI service initialization and task execution
 
 - Error analysis
   - Inspect thrown errors and their stack traces. Pay attention to file read/write errors, plugin load errors, and AI service exceptions.
@@ -152,9 +180,14 @@ Effective debugging involves using Electron’s development tools, console loggi
 - IPC communication
   - Use the IPC handlers to communicate between main and renderer processes. Verify that events are sent and received correctly and that error responses are handled gracefully.
 
+**Updated** Significantly enhanced with comprehensive console logging infrastructure and improved error handling throughout the application.
+
 **Section sources**
 - [src/main.ts:32-35](file://src/main.ts#L32-L35)
 - [src/main.ts:80-156](file://src/main.ts#L80-L156)
+- [src/preload.ts:5-34](file://src/preload.ts#L5-L34)
+- [src/renderer/App.tsx:10-25](file://src/renderer/App.tsx#L10-L25)
+- [src/renderer/components/PDFViewer.tsx:27-58](file://src/renderer/components/PDFViewer.tsx#L27-L58)
 
 ## Frequently Asked Questions
 This section answers common questions about AI service configuration, annotation export formats, plugin marketplace access, and cross-platform compatibility.
@@ -174,7 +207,6 @@ This section answers common questions about AI service configuration, annotation
 **Section sources**
 - [README.md:120-139](file://README.md#L120-L139)
 - [src/core/AnnotationManager.ts:96-112](file://src/core/AnnotationManager.ts#L96-L112)
-- [DESIGN.md:567-600](file://DESIGN.md#L567-L600)
 - [package.json:34-54](file://package.json#L34-L54)
 
 ## Recovery Procedures
@@ -221,8 +253,9 @@ Optimize application behavior through targeted tuning and resource management st
   - Monitor memory usage during intensive operations and adjust concurrency limits.
 
 **Section sources**
-- [DESIGN.md:531-549](file://DESIGN.md#L531-L549)
 - [src/core/AIServiceManager.ts:58-75](file://src/core/AIServiceManager.ts#L58-L75)
 
 ## Conclusion
-By following the troubleshooting steps, diagnostic techniques, and recovery procedures outlined in this document, users and developers can effectively resolve common SciPDFReader issues. Address installation problems early, validate plugin manifests rigorously, monitor performance closely, and adopt platform-specific best practices. For persistent issues, leverage Electron’s development tools and structured error analysis to pinpoint root causes and implement targeted fixes.
+By following the troubleshooting steps, diagnostic techniques, and recovery procedures outlined in this document, users and developers can effectively resolve common SciPDFReader issues. Address installation problems early, validate plugin manifests rigorously, monitor performance closely, and adopt platform-specific best practices. For persistent issues, leverage Electron's development tools and structured error analysis to pinpoint root causes and implement targeted fixes.
+
+**Updated** Enhanced debugging capabilities and comprehensive console logging infrastructure provide unprecedented visibility into application behavior, enabling faster diagnosis and resolution of complex issues across all application layers.

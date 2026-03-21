@@ -4,11 +4,14 @@ interface ToolbarProps {
   onOpenFile: () => void;
   onSave: () => void;
   onZoomChange: (zoom: number) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange }) => {
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [totalPages, setTotalPages] = React.useState(0);
+const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange, currentPage, totalPages, onPageChange }) => {
+  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages);
+  
   const [zoom, setZoom] = React.useState(100);
   const [viewMenuOpen, setViewMenuOpen] = React.useState(false);
 
@@ -41,7 +44,14 @@ const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange }) =
       </div>
 
       <div className="toolbar-group">
-        <button className="toolbar-button" title="Previous Page">
+        <button 
+          className="toolbar-button" 
+          onClick={() => {
+            console.log('[Toolbar] Prev button clicked');
+            onPageChange(Math.max(1, currentPage - 1));
+          }}
+          title="Previous Page"
+        >
           <span>◀</span>
         </button>
         <div className="page-info">
@@ -49,13 +59,26 @@ const Toolbar: React.FC<ToolbarProps> = ({ onOpenFile, onSave, onZoomChange }) =
             type="number" 
             className="page-input" 
             value={currentPage}
-            onChange={(e) => setCurrentPage(parseInt(e.target.value))}
+            onChange={(e) => {
+              const page = parseInt(e.target.value);
+              console.log('[Toolbar] Page input changed to:', page);
+              if (page >= 1 && page <= totalPages) {
+                onPageChange(page);
+              }
+            }}
             min={1}
             max={totalPages}
           />
           <span>/ {totalPages > 0 ? totalPages : '--'}</span>
         </div>
-        <button className="toolbar-button" title="Next Page">
+        <button 
+          className="toolbar-button" 
+          onClick={() => {
+            console.log('[Toolbar] Next button clicked');
+            onPageChange(Math.min(totalPages, currentPage + 1));
+          }}
+          title="Next Page"
+        >
           <span>▶</span>
         </button>
       </div>

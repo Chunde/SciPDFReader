@@ -15,6 +15,10 @@ const App: React.FC = () => {
   const [currentDocument, setCurrentDocument] = useState<any>(null);
   const [annotations, setAnnotations] = useState<any[]>([]);
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  
+  console.log('[App] Rendering - currentPage:', currentPage, 'totalPages:', totalPages);
 
   console.log('[App] State initialized');
   console.log('[App] window object available:', typeof window !== 'undefined');
@@ -205,11 +209,17 @@ const App: React.FC = () => {
             onOpenFile={handleOpenFile}
             onSave={() => console.log('Save')}
             onZoomChange={(zoom) => console.log('Zoom:', zoom)}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
           />
           
           <PDFViewer 
             document={currentDocument}
             onAnnotationCreate={handleCreateAnnotation}
+            currentPage={currentPage}
+            onCurrentPageChange={setCurrentPage}
+            onTotalPagesChange={setTotalPages}
           />
         </div>
 
