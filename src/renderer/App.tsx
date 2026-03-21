@@ -71,26 +71,29 @@ const App: React.FC = () => {
   };
 
   const handleOpenFile = () => {
+    console.log('[FileMenu] Open File clicked');
     window.api?.openFileDialog();
     setFileMenuOpen(false);
   };
 
   const handleSave = () => {
-    console.log('Save PDF');
+    console.log('[FileMenu] Save clicked');
     setFileMenuOpen(false);
   };
 
   const handleSaveAs = () => {
-    console.log('Save As');
+    console.log('[FileMenu] Save As clicked');
     setFileMenuOpen(false);
   };
 
   const handleClose = () => {
+    console.log('[FileMenu] Close clicked');
     setCurrentDocument(null);
     setFileMenuOpen(false);
   };
 
   const handleExit = () => {
+    console.log('[FileMenu] Exit clicked');
     window.api?.closeApp();
     setFileMenuOpen(false);
   };
@@ -103,7 +106,10 @@ const App: React.FC = () => {
           <div className="file-menu-container">
             <button 
               className="hamburger-btn"
-              onClick={() => setFileMenuOpen(!fileMenuOpen)}
+              onClick={() => {
+                console.log('[FileMenu] Hamburger clicked, current state:', fileMenuOpen);
+                setFileMenuOpen(!fileMenuOpen);
+              }}
               title="File Menu"
             >
               <span className="hamburger-bar"></span>
@@ -111,7 +117,7 @@ const App: React.FC = () => {
               <span className="hamburger-bar"></span>
             </button>
             {fileMenuOpen && (
-              <div className="file-dropdown-menu show">
+              <div className="file-dropdown-menu show" style={{ position: 'fixed', top: '60px', left: '10px' }}>
                 <div className="dropdown-item" onClick={handleOpenFile}>
                   <span>📁</span> Open PDF File...
                 </div>

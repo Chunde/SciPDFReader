@@ -27,7 +27,8 @@ function createWindow() {
   });
 
   // Load the index.html
-  mainWindow.loadFile(path.join(__dirname, '../src/renderer/index.html'));
+  const indexPath = path.join(app.getAppPath(), 'src', 'renderer', 'index.html');
+  mainWindow.loadFile(indexPath);
 
   // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {
