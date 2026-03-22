@@ -107,12 +107,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
           type="number" 
           className="zoom-input"
           value={zoom}
-          min={10}
-          max={500}
-          step={10}
           onChange={(e) => {
-            const newZoom = parseInt(e.target.value) || 100;
-            if (newZoom >= 10 && newZoom <= 500) {
+            // Allow typing any value - no validation while typing
+            const newZoom = parseInt(e.target.value);
+            if (!isNaN(newZoom) && newZoom > 0) {
               onZoomChange(newZoom);
             }
           }}
@@ -120,13 +118,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
             if (e.key === 'Enter') {
               const input = e.target as HTMLInputElement;
               const newZoom = parseInt(input.value) || 100;
-              if (newZoom >= 10 && newZoom <= 500) {
-                onZoomChange(newZoom);
-              }
+              // Constrain to valid range when user presses Enter
+              const constrainedZoom = Math.min(500, Math.max(1, newZoom));
+              onZoomChange(constrainedZoom);
               input.blur();
             }
           }}
-          title="Zoom percentage (10-500%)"
+          onBlur={(e) => {
+            const input = e.target as HTMLInputElement;
+            const newZoom = parseInt(input.value) || 100;
+            // Reset to valid range if user clicks away without pressing Enter
+            const constrainedZoom = Math.min(500, Math.max(1, newZoom));
+            if (constrainedZoom !== zoom) {
+              onZoomChange(constrainedZoom);
+            }
+          }}
+          title="Zoom percentage"
         />
         <span className="zoom-label">%</span>
         <button className="toolbar-button" onClick={handleZoomIn} title="Zoom In">
