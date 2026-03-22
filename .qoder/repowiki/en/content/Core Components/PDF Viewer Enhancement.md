@@ -21,11 +21,11 @@
 
 ## Update Summary
 **Changes Made**
-- Updated PDF Viewer component documentation to reflect intelligent wheel event handling for single-page scrolling mode
-- Added detailed explanation of sophisticated wheel event management with throttling, directional detection, and edge boundary checking
-- Enhanced component interaction diagrams to show new wheel event handling functionality
-- Updated performance considerations section to include wheel event throttling and cleanup mechanisms
-- Clarified that wheel event handling is automatically managed and requires no user interaction
+- Updated PDF Viewer component documentation to reflect enhanced wheel event handling with 500ms throttling
+- Added detailed explanation of rendering task cancellation support with `renderTaskRef` tracking
+- Enhanced wheel event management with improved edge detection logic and `isRendering` state management
+- Updated performance considerations section to include rendering task cancellation and smooth scroll behavior
+- Clarified that wheel event handling now includes intelligent rendering state checking and proper cleanup mechanisms
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -97,7 +97,7 @@ Styles --> App
 - [src/main.ts:1-160](file://src/main.ts#L1-L160)
 - [src/preload.ts:1-35](file://src/preload.ts#L1-L35)
 - [src/renderer/App.tsx:1-297](file://src/renderer/App.tsx#L1-L297)
-- [src/renderer/components/PDFViewer.tsx:1-345](file://src/renderer/components/PDFViewer.tsx#L1-L345)
+- [src/renderer/components/PDFViewer.tsx:1-373](file://src/renderer/components/PDFViewer.tsx#L1-L373)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
@@ -126,7 +126,7 @@ Built on PDF.js, the PDFViewer component handles document loading, page renderin
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
-- [src/renderer/components/PDFViewer.tsx:1-345](file://src/renderer/components/PDFViewer.tsx#L1-L345)
+- [src/renderer/components/PDFViewer.tsx:1-373](file://src/renderer/components/PDFViewer.tsx#L1-L373)
 
 ## Architecture Overview
 The application follows a client-server architecture pattern with Electron's main and renderer processes communicating through IPC channels. The design emphasizes separation of concerns and modularity.
@@ -188,8 +188,10 @@ classDiagram
 class PDFViewer {
 +React.FC~PDFViewerProps~
 -canvasRef : RefObject
+-renderTaskRef : RefObject
 -pdfDoc : PDFDocumentProxy
 -isLoading : boolean
+-isRendering : boolean
 -containerRef : RefObject
 +loadPDF(path : string) : Promise<void>
 +renderPage(pageNum : number) : Promise<void>
@@ -208,7 +210,7 @@ class PDFViewerProps {
 +onContainerDimensionsChange : Function
 }
 class WheelEventHandler {
-+lastWheelTime : number
+-lastWheelTime : number
 +handleWheel(e : WheelEvent) : void
 +throttleWheelEvents() : boolean
 +detectDirection(e : WheelEvent) : string
@@ -236,34 +238,37 @@ PDFViewer --> WheelEventHandler : "manages wheel events"
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:19-345](file://src/renderer/components/PDFViewer.tsx#L19-L345)
+- [src/renderer/components/PDFViewer.tsx:19-373](file://src/renderer/components/PDFViewer.tsx#L19-L373)
 - [src/core/AnnotationManager.ts:46-84](file://src/core/AnnotationManager.ts#L46-L84)
 - [src/core/AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
 
 The component implements responsive design with dynamic scaling, supports multiple rendering modes, integrates with the annotation system for collaborative document editing, and features intelligent wheel event handling for enhanced single-page navigation.
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:19-345](file://src/renderer/components/PDFViewer.tsx#L19-L345)
+- [src/renderer/components/PDFViewer.tsx:19-373](file://src/renderer/components/PDFViewer.tsx#L19-L373)
 
 ### Wheel Event Handling System
 **New** The PDFViewer now includes sophisticated wheel event management for single-page scrolling mode:
 
-#### Intelligent Page Navigation Logic
-The wheel event handler implements a multi-layered approach to determine when to navigate between pages:
+#### Enhanced Intelligent Page Navigation Logic
+The wheel event handler implements a multi-layered approach to determine when to navigate between pages with improved performance:
 
-1. **Throttling Mechanism**: Prevents rapid successive page changes with a 400ms cooldown period
-2. **Page Fit Detection**: Determines if the current page fits entirely within the viewport
-3. **Edge Boundary Checking**: Identifies when the user has reached the top or bottom edge of a scrollable page
-4. **Directional Detection**: Uses deltaY values to determine scroll direction
-5. **Boundary Buffer System**: Accounts for minor scroll inaccuracies with 10px tolerance
+1. **Enhanced Throttling Mechanism**: Prevents rapid successive page changes with a 500ms cooldown period (improved from 400ms)
+2. **Rendering State Checking**: Checks `isRendering` state to prevent page changes during active rendering
+3. **Page Fit Detection**: Determines if the current page fits entirely within the viewport
+4. **Improved Edge Boundary Checking**: Identifies when the user has reached the top or bottom edge of a scrollable page with 10px tolerance
+5. **Directional Detection**: Uses deltaY values to determine scroll direction
+6. **Smart Event Prevention**: Prevents default behavior only when necessary for page navigation
 
 #### Wheel Event Processing Flow
 ```mermaid
 flowchart TD
-Start([Wheel Event Received]) --> CheckMode{Scroll Mode == 'fit-height'?}
+Start([Wheel Event Received]) --> CheckRendering{isRendering == true?}
+CheckRendering --> |Yes| PreventDefault[Prevent Default & Skip]
+CheckRendering --> |No| CheckMode{Scroll Mode == 'fit-height'?}
 CheckMode --> |No| Ignore[Ignore Wheel Event]
 CheckMode --> |Yes| GetContainer[Get Container Dimensions]
-GetContainer --> Throttle{Within 400ms Throttle?}
+GetContainer --> Throttle{Within 500ms Throttle?}
 Throttle --> |Yes| Ignore
 Throttle --> |No| CheckFit{Page Fits Entirely?}
 CheckFit --> |Yes| CheckDirection1{deltaY > 0?}
@@ -282,16 +287,63 @@ AtTop --> |No| Continue
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:156-212](file://src/renderer/components/PDFViewer.tsx#L156-L212)
+- [src/renderer/components/PDFViewer.tsx:158-225](file://src/renderer/components/PDFViewer.tsx#L158-L225)
 
-#### Cleanup and Resource Management
+#### Enhanced Cleanup and Resource Management
 The wheel event handler includes proper cleanup mechanisms:
 - Automatic removal of event listeners on component unmount
 - Prevention of memory leaks through proper event listener cleanup
 - Safe handling of edge cases during component lifecycle
+- **Updated** Integration with `isRendering` state for coordinated cleanup
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:156-212](file://src/renderer/components/PDFViewer.tsx#L156-L212)
+- [src/renderer/components/PDFViewer.tsx:158-225](file://src/renderer/components/PDFViewer.tsx#L158-L225)
+
+### Rendering Task Management
+**New** The PDFViewer now includes comprehensive rendering task management with cancellation support:
+
+#### Rendering Task Cancellation System
+The component implements a robust rendering task management system:
+
+1. **Render Task Tracking**: Uses `renderTaskRef` to track active rendering tasks
+2. **Automatic Cancellation**: Cancels previous render tasks before starting new ones
+3. **State Management**: Tracks rendering state with `isRendering` for coordinated UI updates
+4. **Cleanup Mechanisms**: Properly cleans up render tasks on component unmount
+5. **Error Handling**: Handles rendering cancellation exceptions gracefully
+
+#### Rendering Lifecycle
+```mermaid
+flowchart TD
+Start([Page Change Requested]) --> CheckMode{Scroll Mode == 'fit-height' OR 'scroll'?}
+CheckMode --> |No| End([No Rendering])
+CheckMode --> |Yes| CheckTask{renderTaskRef.current exists?}
+CheckTask --> |Yes| CancelTask[Cancel Previous Task]
+CheckTask --> |No| CreateCanvas[Create Canvas Context]
+CancelTask --> CreateCanvas
+CreateCanvas --> SetRenderingState[Set isRendering = true]
+SetRenderingState --> RenderPage[Render Page with PDF.js]
+RenderPage --> TaskComplete{Task Completed?}
+TaskComplete --> |Yes| ResetTaskRef[Reset renderTaskRef]
+TaskComplete --> |No| CheckError{Error Type?}
+CheckError --> |RenderingCancelledException| HandleCancel[Handle Cancellation]
+CheckError --> |Other Error| HandleError[Handle Error]
+ResetTaskRef --> ClearState[Clear isRendering State]
+HandleCancel --> ClearState
+HandleError --> ClearState
+ClearState --> End
+```
+
+**Diagram sources**
+- [src/renderer/components/PDFViewer.tsx:227-282](file://src/renderer/components/PDFViewer.tsx#L227-L282)
+
+#### Smooth Scroll Behavior
+The PDFViewer now includes smooth scroll behavior for enhanced user experience:
+- CSS `scrollBehavior: 'smooth'` for natural page transitions
+- Coordinated wheel event handling with intelligent edge detection
+- Responsive rendering with proper task cancellation
+
+**Section sources**
+- [src/renderer/components/PDFViewer.tsx:227-282](file://src/renderer/components/PDFViewer.tsx#L227-L282)
 
 ### Toolbar Component
 The Toolbar component provides the primary user interface controls for PDF navigation and viewing options. **Updated** The toolbar interface has been simplified with certain controls moved to alternative locations while maintaining full functionality.
@@ -536,14 +588,17 @@ The application implements several performance optimization strategies:
 - Efficient canvas rendering with proper memory management
 - Lazy loading of PDF pages based on scroll position
 - Responsive scaling calculations to minimize reflows
+- **Updated** Enhanced rendering task cancellation prevents memory leaks and resource waste
+- **Updated** `isRendering` state management optimizes wheel event handling during active rendering
 
 ### Memory Management
 - Proper cleanup of event listeners and observers
 - Efficient annotation data structures using Maps
 - Conditional rendering based on component state
 - Cleanup of PDF rendering contexts
-- **Updated** Intelligent wheel event throttling prevents excessive page navigation requests
-- **Updated** Edge boundary detection reduces unnecessary page changes
+- **Updated** Intelligent wheel event throttling (500ms) prevents excessive page navigation requests
+- **Updated** Improved edge boundary detection reduces unnecessary page changes
+- **Updated** Render task tracking with automatic cancellation prevents memory leaks
 
 ### Network and I/O Optimization
 - Buffered file reading for large PDFs
@@ -553,11 +608,21 @@ The application implements several performance optimization strategies:
 
 ### Wheel Event Performance
 **New** The wheel event handling system includes several performance optimizations:
-- 400ms throttle prevents rapid successive page changes
-- Edge boundary checking avoids unnecessary DOM operations
+- 500ms throttle prevents rapid successive page changes (improved from 400ms)
+- `isRendering` state checking prevents page navigation during active rendering
+- Enhanced edge boundary checking with 10px tolerance avoids unnecessary DOM operations
 - Directional detection uses efficient delta comparison
 - Cleanup mechanisms prevent memory leaks
 - Passive event listeners with manual prevention for optimal performance
+- **Updated** Smooth scroll behavior provides natural page transitions
+
+### Rendering Task Performance
+**New** The rendering task management system includes:
+- Automatic cancellation of previous render tasks before starting new ones
+- `renderTaskRef` tracking for proper cleanup and coordination
+- `isRendering` state management for UI responsiveness
+- Graceful handling of rendering cancellation exceptions
+- Proper cleanup on component unmount to prevent memory leaks
 
 ## Troubleshooting Guide
 Common issues and their solutions:
@@ -592,10 +657,11 @@ Common issues and their solutions:
   - **Solution**: Ensure scroll mode is set to 'fit-height'
   - **Solution**: Verify container element has proper dimensions
   - **Solution**: Check browser compatibility with wheel events
+  - **Solution**: Verify `isRendering` state is false during wheel events
 
 - **Issue**: Excessive page navigation with rapid scrolling
-  - **Solution**: Adjust throttle timing in wheel event handler
-  - **Solution**: Verify edge boundary detection logic
+  - **Solution**: Adjust throttle timing in wheel event handler (currently 500ms)
+  - **Solution**: Verify edge boundary detection logic with 10px tolerance
 
 - **Issue**: Wheel events not being cleaned up properly
   - **Solution**: Check component unmount lifecycle
@@ -604,12 +670,28 @@ Common issues and their solutions:
 - **Issue**: Page navigation conflicts with natural scrolling
   - **Solution**: Adjust edge boundary thresholds
   - **Solution**: Fine-tune directional detection sensitivity
+  - **Solution**: Ensure `isRendering` state is properly managed
+
+### Rendering Task Issues
+**New** Common rendering task management problems and solutions:
+- **Issue**: Rendering tasks not being cancelled properly
+  - **Solution**: Verify `renderTaskRef.current` is properly tracked
+  - **Solution**: Check component unmount cleanup for render task cancellation
+
+- **Issue**: Memory leaks during rapid page navigation
+  - **Solution**: Ensure previous render tasks are cancelled before starting new ones
+  - **Solution**: Verify `isRendering` state is cleared in finally blocks
+
+- **Issue**: Rendering cancellation exceptions
+  - **Solution**: Check for `RenderingCancelledException` in error handling
+  - **Solution**: Ensure proper exception handling in rendering tasks
 
 **Section sources**
 - [src/renderer/components/PDFViewer.tsx:74-78](file://src/renderer/components/PDFViewer.tsx#L74-L78)
 - [src/core/AnnotationManager.ts:153-170](file://src/core/AnnotationManager.ts#L153-L170)
 - [src/core/PluginManager.ts:60-69](file://src/core/PluginManager.ts#L60-L69)
-- [src/renderer/components/PDFViewer.tsx:156-212](file://src/renderer/components/PDFViewer.tsx#L156-L212)
+- [src/renderer/components/PDFViewer.tsx:158-225](file://src/renderer/components/PDFViewer.tsx#L158-L225)
+- [src/renderer/components/PDFViewer.tsx:227-282](file://src/renderer/components/PDFViewer.tsx#L227-L282)
 
 ## Conclusion
 The SciPDFReader PDF Viewer Enhancement project demonstrates a sophisticated approach to building modern desktop applications with AI integration and extensibility. The architecture successfully balances functionality, performance, and maintainability through careful design decisions and modular component organization.
@@ -620,8 +702,12 @@ Key strengths of the implementation include:
 - Robust annotation system with multiple export formats
 - Flexible AI service integration with multiple provider support
 - Responsive PDF rendering with advanced scaling capabilities
-- **Updated** Intelligent wheel event handling for enhanced single-page navigation experience
+- **Updated** Enhanced wheel event handling with 500ms throttling for improved user experience
+- **Updated** Comprehensive rendering task management with cancellation support
+- **Updated** Intelligent edge detection logic with improved boundary checking
+- **Updated** Smooth scroll behavior for natural page transitions
+- **Updated** `isRendering` state management for coordinated UI updates
 
 The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, expanded AI capabilities, and refined user interaction patterns. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
 
-**Updated** The addition of intelligent wheel event handling significantly enhances the user experience in single-page scrolling mode by providing smooth, responsive page navigation with sophisticated edge detection and throttling mechanisms. The wheel event system operates transparently without requiring user intervention, automatically managing page transitions based on scroll behavior and viewport boundaries.
+**Updated** The addition of enhanced wheel event handling with 500ms throttling, rendering task cancellation support, improved edge detection logic, and smooth scroll behavior significantly enhances the user experience in single-page scrolling mode. The intelligent `isRendering` state management and `renderTaskRef` tracking provide proper cleanup mechanisms, preventing memory leaks and ensuring optimal performance during rapid page navigation. The wheel event system operates transparently without requiring user intervention, automatically managing page transitions based on scroll behavior and viewport boundaries while coordinating with the rendering system for seamless operation.

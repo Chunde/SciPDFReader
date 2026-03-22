@@ -162,11 +162,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     const container = containerRef.current;
 
     const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      
       const now = Date.now();
+      
       // Check if rendering is in progress - don't change page while rendering
       if (isRendering) {
+        e.preventDefault();
         console.log('[PDFViewer] Skipping wheel - rendering in progress');
         return;
       }
@@ -177,10 +177,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       const { scrollTop, scrollHeight, clientHeight } = container;
       const pageFits = scrollHeight <= clientHeight;
       
-      console.log('[PDFViewer] Wheel - pageFits:', pageFits, 'isRendering:', isRendering);
-      
-      // If page fits perfectly, go to next/prev page immediately
+      // If page fits perfectly, change pages immediately
       if (pageFits) {
+        e.preventDefault();
         lastWheelTime.current = now;
         if (e.deltaY > 0 && currentPage < pdfDoc.numPages) {
           console.log('[PDFViewer] Page fits - loading next page:', currentPage + 1);
@@ -196,15 +195,26 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       const atBottom = scrollTop >= scrollHeight - clientHeight - 10;
       const atTop = scrollTop <= 10;
       
+      // At bottom edge and scrolling down - go to next page
       if (e.deltaY > 0 && atBottom && currentPage < pdfDoc.numPages) {
+        e.preventDefault();
         console.log('[PDFViewer] At bottom edge - loading next page:', currentPage + 1);
         lastWheelTime.current = now;
         onCurrentPageChange(currentPage + 1);
-      } else if (e.deltaY < 0 && atTop && currentPage > 1) {
+        return;
+      }
+      
+      // At top edge and scrolling up - go to previous page
+      if (e.deltaY < 0 && atTop && currentPage > 1) {
+        e.preventDefault();
         console.log('[PDFViewer] At top edge - loading previous page:', currentPage - 1);
         lastWheelTime.current = now;
         onCurrentPageChange(currentPage - 1);
+        return;
       }
+      
+      // Not at edge - let native scroll handle it (don't prevent default)
+      console.log('[PDFViewer] Scrolling within page - scrollTop:', scrollTop);
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
