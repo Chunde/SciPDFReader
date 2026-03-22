@@ -26,6 +26,8 @@
 - Enhanced wheel event management with improved edge detection logic and `isRendering` state management
 - Updated performance considerations section to include rendering task cancellation and smooth scroll behavior
 - Clarified that wheel event handling now includes intelligent rendering state checking and proper cleanup mechanisms
+- Added comprehensive debugging capabilities with extensive console logging throughout the component
+- Enhanced rendering state management with proper cleanup and error handling
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -96,8 +98,8 @@ Styles --> App
 **Diagram sources**
 - [src/main.ts:1-160](file://src/main.ts#L1-L160)
 - [src/preload.ts:1-35](file://src/preload.ts#L1-L35)
-- [src/renderer/App.tsx:1-297](file://src/renderer/App.tsx#L1-L297)
-- [src/renderer/components/PDFViewer.tsx:1-373](file://src/renderer/components/PDFViewer.tsx#L1-L373)
+- [src/renderer/App.tsx:1-311](file://src/renderer/App.tsx#L1-L311)
+- [src/renderer/components/PDFViewer.tsx:1-379](file://src/renderer/components/PDFViewer.tsx#L1-L379)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
@@ -126,7 +128,7 @@ Built on PDF.js, the PDFViewer component handles document loading, page renderin
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
-- [src/renderer/components/PDFViewer.tsx:1-373](file://src/renderer/components/PDFViewer.tsx#L1-L373)
+- [src/renderer/components/PDFViewer.tsx:1-379](file://src/renderer/components/PDFViewer.tsx#L1-L379)
 
 ## Architecture Overview
 The application follows a client-server architecture pattern with Electron's main and renderer processes communicating through IPC channels. The design emphasizes separation of concerns and modularity.
@@ -238,14 +240,14 @@ PDFViewer --> WheelEventHandler : "manages wheel events"
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:19-373](file://src/renderer/components/PDFViewer.tsx#L19-L373)
+- [src/renderer/components/PDFViewer.tsx:19-379](file://src/renderer/components/PDFViewer.tsx#L19-L379)
 - [src/core/AnnotationManager.ts:46-84](file://src/core/AnnotationManager.ts#L46-L84)
 - [src/core/AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
 
 The component implements responsive design with dynamic scaling, supports multiple rendering modes, integrates with the annotation system for collaborative document editing, and features intelligent wheel event handling for enhanced single-page navigation.
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:19-373](file://src/renderer/components/PDFViewer.tsx#L19-L373)
+- [src/renderer/components/PDFViewer.tsx:19-379](file://src/renderer/components/PDFViewer.tsx#L19-L379)
 
 ### Wheel Event Handling System
 **New** The PDFViewer now includes sophisticated wheel event management for single-page scrolling mode:
@@ -334,7 +336,7 @@ ClearState --> End
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:227-282](file://src/renderer/components/PDFViewer.tsx#L227-L282)
+- [src/renderer/components/PDFViewer.tsx:227-288](file://src/renderer/components/PDFViewer.tsx#L227-L288)
 
 #### Smooth Scroll Behavior
 The PDFViewer now includes smooth scroll behavior for enhanced user experience:
@@ -343,7 +345,33 @@ The PDFViewer now includes smooth scroll behavior for enhanced user experience:
 - Responsive rendering with proper task cancellation
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:227-282](file://src/renderer/components/PDFViewer.tsx#L227-L282)
+- [src/renderer/components/PDFViewer.tsx:227-288](file://src/renderer/components/PDFViewer.tsx#L227-L288)
+
+### Enhanced Debugging Capabilities
+**New** The PDFViewer component includes comprehensive debugging capabilities with extensive console logging:
+
+#### Debug Logging System
+The component implements detailed logging throughout the rendering pipeline:
+
+1. **Component Lifecycle Logging**: Logs component mounting, updates, and unmounting
+2. **PDF Loading Progress**: Tracks PDF loading stages and errors
+3. **Rendering Operations**: Monitors render task creation, completion, and cancellation
+4. **Wheel Event Processing**: Logs wheel event handling decisions and outcomes
+5. **Dimension Tracking**: Reports page and container dimension changes
+6. **State Management**: Logs state transitions and updates
+
+#### Debug Output Examples
+The component logs various operational states:
+- `[PDFViewer] Rendering - currentPage: X, scale: Y, scrollMode: Z`
+- `[PDFViewer] loadPDF called with path: filePath`
+- `[PDFViewer] Page X rendered successfully`
+- `[PDFViewer] Skipping wheel - rendering in progress`
+- `[PDFViewer] At bottom edge - loading next page: X+1`
+
+**Section sources**
+- [src/renderer/components/PDFViewer.tsx:28-75](file://src/renderer/components/PDFViewer.tsx#L28-L75)
+- [src/renderer/components/PDFViewer.tsx:164-218](file://src/renderer/components/PDFViewer.tsx#L164-L218)
+- [src/renderer/components/PDFViewer.tsx:243-277](file://src/renderer/components/PDFViewer.tsx#L243-L277)
 
 ### Toolbar Component
 The Toolbar component provides the primary user interface controls for PDF navigation and viewing options. **Updated** The toolbar interface has been simplified with certain controls moved to alternative locations while maintaining full functionality.
@@ -389,7 +417,7 @@ Toolbar --> ToolbarProps : "implements interface"
 
 **Diagram sources**
 - [src/renderer/components/Toolbar.tsx:3-17](file://src/renderer/components/Toolbar.tsx#L3-L17)
-- [src/renderer/components/Toolbar.tsx:19-208](file://src/renderer/components/Toolbar.tsx#L19-L208)
+- [src/renderer/components/Toolbar.tsx:19-218](file://src/renderer/components/Toolbar.tsx#L19-L218)
 
 **Updated** The toolbar now features a streamlined interface with:
 - File operations (Open, Save)
@@ -399,7 +427,7 @@ Toolbar --> ToolbarProps : "implements interface"
 - Annotation tools (Highlight, Underline, Note, Translate)
 
 **Section sources**
-- [src/renderer/components/Toolbar.tsx:19-208](file://src/renderer/components/Toolbar.tsx#L19-L208)
+- [src/renderer/components/Toolbar.tsx:19-218](file://src/renderer/components/Toolbar.tsx#L19-L218)
 
 ### Annotation Management System
 The AnnotationManager provides a comprehensive solution for annotation persistence, retrieval, and export functionality.
@@ -624,6 +652,14 @@ The application implements several performance optimization strategies:
 - Graceful handling of rendering cancellation exceptions
 - Proper cleanup on component unmount to prevent memory leaks
 
+### Debugging Performance Impact
+**New** The enhanced debugging capabilities include:
+- Console logging with performance monitoring
+- Component lifecycle tracking for optimization insights
+- Rendering progress reporting for performance analysis
+- Wheel event processing diagnostics
+- Memory leak detection through proper cleanup logging
+
 ## Troubleshooting Guide
 Common issues and their solutions:
 
@@ -686,12 +722,24 @@ Common issues and their solutions:
   - **Solution**: Check for `RenderingCancelledException` in error handling
   - **Solution**: Ensure proper exception handling in rendering tasks
 
+### Debugging Issues
+**New** Common debugging problems and solutions:
+- **Issue**: Missing debug logs
+  - **Solution**: Verify console logging is enabled in development mode
+  - **Solution**: Check browser developer tools for console output
+  - **Solution**: Ensure proper import statements for debugging utilities
+
+- **Issue**: Excessive console logging affecting performance
+  - **Solution**: Implement conditional logging based on environment
+  - **Solution**: Use performance.mark/performance.measure for timing
+  - **Solution**: Remove debug logs in production builds
+
 **Section sources**
 - [src/renderer/components/PDFViewer.tsx:74-78](file://src/renderer/components/PDFViewer.tsx#L74-L78)
 - [src/core/AnnotationManager.ts:153-170](file://src/core/AnnotationManager.ts#L153-L170)
 - [src/core/PluginManager.ts:60-69](file://src/core/PluginManager.ts#L60-L69)
 - [src/renderer/components/PDFViewer.tsx:158-225](file://src/renderer/components/PDFViewer.tsx#L158-L225)
-- [src/renderer/components/PDFViewer.tsx:227-282](file://src/renderer/components/PDFViewer.tsx#L227-L282)
+- [src/renderer/components/PDFViewer.tsx:227-288](file://src/renderer/components/PDFViewer.tsx#L227-L288)
 
 ## Conclusion
 The SciPDFReader PDF Viewer Enhancement project demonstrates a sophisticated approach to building modern desktop applications with AI integration and extensibility. The architecture successfully balances functionality, performance, and maintainability through careful design decisions and modular component organization.
@@ -707,7 +755,9 @@ Key strengths of the implementation include:
 - **Updated** Intelligent edge detection logic with improved boundary checking
 - **Updated** Smooth scroll behavior for natural page transitions
 - **Updated** `isRendering` state management for coordinated UI updates
+- **Updated** Extensive debugging capabilities with comprehensive console logging
+- **Updated** Proper cleanup mechanisms preventing memory leaks and resource waste
 
 The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, expanded AI capabilities, and refined user interaction patterns. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
 
-**Updated** The addition of enhanced wheel event handling with 500ms throttling, rendering task cancellation support, improved edge detection logic, and smooth scroll behavior significantly enhances the user experience in single-page scrolling mode. The intelligent `isRendering` state management and `renderTaskRef` tracking provide proper cleanup mechanisms, preventing memory leaks and ensuring optimal performance during rapid page navigation. The wheel event system operates transparently without requiring user intervention, automatically managing page transitions based on scroll behavior and viewport boundaries while coordinating with the rendering system for seamless operation.
+**Updated** The addition of enhanced wheel event handling with 500ms throttling, rendering task cancellation support, improved edge detection logic, and smooth scroll behavior significantly enhances the user experience in single-page scrolling mode. The intelligent `isRendering` state management and `renderTaskRef` tracking provide proper cleanup mechanisms, preventing memory leaks and ensuring optimal performance during rapid page navigation. The wheel event system operates transparently without requiring user intervention, automatically managing page transitions based on scroll behavior and viewport boundaries while coordinating with the rendering system for seamless operation. The comprehensive debugging capabilities enable developers to monitor performance, track rendering progress, and identify optimization opportunities throughout the application lifecycle.

@@ -260,6 +260,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
         await renderTask.promise;
         renderTaskRef.current = null;
         
+        // Report page dimensions after successful render
+        if (onPageDimensionsChange) {
+          console.log('[PDFViewer] Reporting page dimensions:', viewport.width, 'x', viewport.height);
+          onPageDimensionsChange(viewport.width, viewport.height);
+        }
+        
         console.log('[PDFViewer] Page', currentPage, 'rendered successfully');
       } catch (error: any) {
         if (error?.name !== 'RenderingCancelledException') {

@@ -60,6 +60,9 @@ const App: React.FC = () => {
       console.log('[App] Load result:', result);
       if (result && result.success) {
         setCurrentDocument(result);
+        setCurrentPage(1);
+        setPageDimensions({width: 0, height: 0});
+        setZoomMode('fit-width'); // Default to fit-width on new PDF
         console.log('[App] Document set successfully');
       } else {
         console.error('[App] Failed to load PDF:', result?.error);
@@ -230,20 +233,28 @@ const App: React.FC = () => {
             containerDimensions={containerDimensions}
             onFitToWidth={() => {
               if (pageDimensions.width > 0 && containerDimensions.width > 0) {
-                const newScale = (containerDimensions.width - 40) / pageDimensions.width;
-                console.log('[App] Fit to width: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale);
+                const padding = 40;
+                const newScale = (containerDimensions.width - padding) / pageDimensions.width;
+                const newZoom = Math.round(newScale * 100);
+                console.log('[App] Fit to width: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
                 setScale(newScale);
-                setZoom(Math.round(newScale * 100));
+                setZoom(newZoom);
                 setZoomMode('fit-width');
+              } else {
+                console.log('[App] Fit to width: waiting for dimensions - page:', pageDimensions, 'container:', containerDimensions);
               }
             }}
             onFitToHeight={() => {
               if (pageDimensions.height > 0 && containerDimensions.height > 0) {
-                const newScale = (containerDimensions.height - 40) / pageDimensions.height;
-                console.log('[App] Fit to height: container:', containerDimensions.height, 'page:', pageDimensions.height, 'scale:', newScale);
+                const padding = 40;
+                const newScale = (containerDimensions.height - padding) / pageDimensions.height;
+                const newZoom = Math.round(newScale * 100);
+                console.log('[App] Fit to height: container:', containerDimensions.height, 'page:', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
                 setScale(newScale);
-                setZoom(Math.round(newScale * 100));
+                setZoom(newZoom);
                 setZoomMode('fit-height');
+              } else {
+                console.log('[App] Fit to height: waiting for dimensions - page:', pageDimensions, 'container:', containerDimensions);
               }
             }}
           />
@@ -266,16 +277,19 @@ const App: React.FC = () => {
               
               // Auto-recalculate fit-to modes when window resizes
               if (pageDimensions.width > 0 && pageDimensions.height > 0) {
+                const padding = 40;
                 if (zoomMode === 'fit-width') {
-                  const newScale = (width - 40) / pageDimensions.width;
-                  console.log('[App] Auto recalculating fit-to-width: container:', width, 'page:', pageDimensions.width, 'scale:', newScale);
+                  const newScale = (width - padding) / pageDimensions.width;
+                  const newZoom = Math.round(newScale * 100);
+                  console.log('[App] Auto recalculating fit-to-width: container:', width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
                   setScale(newScale);
-                  setZoom(Math.round(newScale * 100));
+                  setZoom(newZoom);
                 } else if (zoomMode === 'fit-height') {
-                  const newScale = (height - 40) / pageDimensions.height;
-                  console.log('[App] Auto recalculating fit-to-height: container:', height, 'page:', pageDimensions.height, 'scale:', newScale);
+                  const newScale = (height - padding) / pageDimensions.height;
+                  const newZoom = Math.round(newScale * 100);
+                  console.log('[App] Auto recalculating fit-to-height: container:', height, 'page:', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
                   setScale(newScale);
-                  setZoom(Math.round(newScale * 100));
+                  setZoom(newZoom);
                 }
               }
             }}

@@ -251,6 +251,35 @@ body {
     font-size: 13px;
 }
 
+.zoom-input {
+    width: 60px;
+    padding: 4px 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.zoom-input:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
+.zoom-input::-webkit-inner-spin-button,
+.zoom-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.zoom-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.zoom-label {
+    font-size: 13px;
+    color: #666;
+}
+
 /* PDF Canvas Area */
 .pdf-content {
     flex: 1;

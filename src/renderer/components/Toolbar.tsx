@@ -103,22 +103,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <button className="toolbar-button" onClick={handleZoomOut} title="Zoom Out">
           <span>🔍</span> -
         </button>
-        <select 
-          className="zoom-select"
+        <input 
+          type="number" 
+          className="zoom-input"
           value={zoom}
+          min={10}
+          max={500}
+          step={10}
           onChange={(e) => {
-            const newZoom = parseInt(e.target.value);
-            onZoomChange(newZoom);
+            const newZoom = parseInt(e.target.value) || 100;
+            if (newZoom >= 10 && newZoom <= 500) {
+              onZoomChange(newZoom);
+            }
           }}
-        >
-          <option value={50}>50%</option>
-          <option value={75}>75%</option>
-          <option value={100}>100%</option>
-          <option value={125}>125%</option>
-          <option value={150}>150%</option>
-          <option value={200}>200%</option>
-          <option value={300}>300%</option>
-        </select>
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const input = e.target as HTMLInputElement;
+              const newZoom = parseInt(input.value) || 100;
+              if (newZoom >= 10 && newZoom <= 500) {
+                onZoomChange(newZoom);
+              }
+              input.blur();
+            }
+          }}
+          title="Zoom percentage (10-500%)"
+        />
+        <span className="zoom-label">%</span>
         <button className="toolbar-button" onClick={handleZoomIn} title="Zoom In">
           <span>🔍</span> +
         </button>
