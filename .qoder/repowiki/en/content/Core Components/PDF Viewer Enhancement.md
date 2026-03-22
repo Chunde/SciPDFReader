@@ -21,13 +21,13 @@
 
 ## Update Summary
 **Changes Made**
-- Updated PDF Viewer component documentation to reflect enhanced wheel event handling with 500ms throttling
-- Added detailed explanation of rendering task cancellation support with `renderTaskRef` tracking
-- Enhanced wheel event management with improved edge detection logic and `isRendering` state management
-- Updated performance considerations section to include rendering task cancellation and smooth scroll behavior
-- Clarified that wheel event handling now includes intelligent rendering state checking and proper cleanup mechanisms
-- Added comprehensive debugging capabilities with extensive console logging throughout the component
-- Enhanced rendering state management with proper cleanup and error handling
+- Updated Toolbar component documentation to reflect enhanced zoom functionality with custom numeric input field
+- Added detailed explanation of zoom validation and constraint mechanisms with 1-500% range limits
+- Enhanced zoom calculation logic with improved dimension reporting capabilities
+- Updated styling documentation for zoom input field with focus states and validation feedback
+- Clarified that the toolbar now features a numeric zoom input with Enter key validation and blur constraints
+- Added comprehensive dimension reporting system with page and container dimension tracking
+- Enhanced wheel event handling with improved edge detection logic and `isRendering` state management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -98,7 +98,7 @@ Styles --> App
 **Diagram sources**
 - [src/main.ts:1-160](file://src/main.ts#L1-L160)
 - [src/preload.ts:1-35](file://src/preload.ts#L1-L35)
-- [src/renderer/App.tsx:1-311](file://src/renderer/App.tsx#L1-L311)
+- [src/renderer/App.tsx:1-335](file://src/renderer/App.tsx#L1-L335)
 - [src/renderer/components/PDFViewer.tsx:1-379](file://src/renderer/components/PDFViewer.tsx#L1-L379)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
@@ -249,6 +249,77 @@ The component implements responsive design with dynamic scaling, supports multip
 **Section sources**
 - [src/renderer/components/PDFViewer.tsx:19-379](file://src/renderer/components/PDFViewer.tsx#L19-L379)
 
+### Enhanced Zoom Functionality
+**New** The Toolbar component now features a sophisticated numeric zoom input system with comprehensive validation and constraint mechanisms:
+
+#### Numeric Zoom Input System
+The zoom input field provides precise control over zoom levels with the following features:
+
+1. **Custom Numeric Input Field**: Replaces the previous dropdown-based system with a direct numeric input
+2. **Real-time Validation**: Allows typing any value during input without immediate validation
+3. **Constraint Validation**: Applies 1-500% range limits when user interacts with the input
+4. **Enter Key Processing**: Validates and constrains zoom level when user presses Enter
+5. **Blur Handling**: Automatically constrains zoom level when input loses focus
+6. **Visual Feedback**: Enhanced styling with focus states and validation indicators
+
+#### Zoom Input Processing Flow
+```mermaid
+flowchart TD
+Start([Zoom Input Interaction]) --> Typing{User is typing?}
+Typing --> |Yes| RealTimeValidation[Allow any numeric input]
+RealTimeValidation --> ContinueTyping[Continue typing without validation]
+Typing --> |No| EnterPressed{Enter key pressed?}
+EnterPressed --> |Yes| ValidateAndConstrain[Validate 1-500% range]
+ValidateAndConstrain --> ApplyZoom[Apply constrained zoom level]
+EnterPressed --> |No| BlurEvent{Input lost focus?}
+BlurEvent --> |Yes| ValidateAndConstrain2[Validate 1-500% range]
+ValidateAndConstrain2 --> ApplyZoom2[Apply constrained zoom level]
+BlurEvent --> |No| MouseClick{Mouse click elsewhere?}
+MouseClick --> |Yes| ValidateAndConstrain3[Validate 1-500% range]
+ValidateAndConstrain3 --> ApplyZoom3[Apply constrained zoom level]
+MouseClick --> |No| End([No action])
+ApplyZoom --> End
+ApplyZoom2 --> End
+ApplyZoom3 --> End
+```
+
+**Diagram sources**
+- [src/renderer/components/Toolbar.tsx:106-137](file://src/renderer/components/Toolbar.tsx#L106-L137)
+
+#### Enhanced Dimension Reporting System
+**New** The PDFViewer component now includes comprehensive dimension reporting capabilities:
+
+1. **Page Dimension Tracking**: Reports page width and height after successful rendering
+2. **Container Dimension Monitoring**: Uses ResizeObserver for real-time container dimension changes
+3. **Auto-fit Calculation**: Automatically calculates optimal zoom levels based on available space
+4. **Responsive Scaling**: Recalculates zoom levels when window or container dimensions change
+5. **Initial Load Reporting**: Reports first page dimensions when PDF is loaded
+
+#### Dimension Reporting Flow
+```mermaid
+flowchart TD
+PDFLoaded([PDF Loaded]) --> GetFirstPage[Get First Page]
+GetFirstPage --> CalculatePageDims[Calculate Page Dimensions]
+CalculatePageDims --> ReportPageDims[Report Page Dimensions]
+ReportPageDims --> WaitResize[Wait for Container Resize]
+WaitResize --> ContainerResized{Container Resized?}
+ContainerResized --> |Yes| CalculateAutoFit[Calculate Auto-fit Scale]
+CalculateAutoFit --> ApplyZoom[Apply Calculated Zoom]
+ContainerResized --> |No| WaitResize
+ApplyZoom --> WaitResize
+```
+
+**Diagram sources**
+- [src/renderer/components/PDFViewer.tsx:64-70](file://src/renderer/components/PDFViewer.tsx#L64-L70)
+- [src/renderer/components/PDFViewer.tsx:119-148](file://src/renderer/components/PDFViewer.tsx#L119-L148)
+- [src/renderer/App.tsx:270-288](file://src/renderer/App.tsx#L270-L288)
+
+**Section sources**
+- [src/renderer/components/Toolbar.tsx:106-137](file://src/renderer/components/Toolbar.tsx#L106-L137)
+- [src/renderer/components/PDFViewer.tsx:64-70](file://src/renderer/components/PDFViewer.tsx#L64-L70)
+- [src/renderer/components/PDFViewer.tsx:119-148](file://src/renderer/components/PDFViewer.tsx#L119-L148)
+- [src/renderer/App.tsx:270-288](file://src/renderer/App.tsx#L270-L288)
+
 ### Wheel Event Handling System
 **New** The PDFViewer now includes sophisticated wheel event management for single-page scrolling mode:
 
@@ -374,7 +445,7 @@ The component logs various operational states:
 - [src/renderer/components/PDFViewer.tsx:243-277](file://src/renderer/components/PDFViewer.tsx#L243-L277)
 
 ### Toolbar Component
-The Toolbar component provides the primary user interface controls for PDF navigation and viewing options. **Updated** The toolbar interface has been simplified with certain controls moved to alternative locations while maintaining full functionality.
+The Toolbar component provides the primary user interface controls for PDF navigation and viewing options. **Updated** The toolbar interface has been enhanced with a sophisticated numeric zoom input system while maintaining full functionality.
 
 ```mermaid
 classDiagram
@@ -417,17 +488,17 @@ Toolbar --> ToolbarProps : "implements interface"
 
 **Diagram sources**
 - [src/renderer/components/Toolbar.tsx:3-17](file://src/renderer/components/Toolbar.tsx#L3-L17)
-- [src/renderer/components/Toolbar.tsx:19-218](file://src/renderer/components/Toolbar.tsx#L19-L218)
+- [src/renderer/components/Toolbar.tsx:19-225](file://src/renderer/components/Toolbar.tsx#L19-L225)
 
-**Updated** The toolbar now features a streamlined interface with:
+**Updated** The toolbar now features a streamlined interface with enhanced zoom controls:
 - File operations (Open, Save)
 - Navigation controls (Previous, Next page)
-- Zoom controls (Zoom In, Zoom Out, Zoom selection)
+- **Enhanced** Zoom controls with numeric input field (Zoom In, Zoom Out, Custom zoom input)
 - View options accessible through dropdown menu
 - Annotation tools (Highlight, Underline, Note, Translate)
 
 **Section sources**
-- [src/renderer/components/Toolbar.tsx:19-218](file://src/renderer/components/Toolbar.tsx#L19-L218)
+- [src/renderer/components/Toolbar.tsx:19-225](file://src/renderer/components/Toolbar.tsx#L19-L225)
 
 ### Annotation Management System
 The AnnotationManager provides a comprehensive solution for annotation persistence, retrieval, and export functionality.
@@ -634,6 +705,14 @@ The application implements several performance optimization strategies:
 - Asynchronous operations to prevent UI blocking
 - Efficient IPC communication patterns
 
+### Enhanced Zoom Input Performance
+**New** The numeric zoom input system includes several performance optimizations:
+- Real-time validation prevents unnecessary re-renders during typing
+- Constraint validation only occurs on Enter key press or blur events
+- 1-500% range limit prevents invalid zoom calculations
+- Input field styling with focus states improves user experience
+- Debounced zoom change events prevent excessive state updates
+
 ### Wheel Event Performance
 **New** The wheel event handling system includes several performance optimizations:
 - 500ms throttle prevents rapid successive page changes (improved from 400ms)
@@ -651,6 +730,13 @@ The application implements several performance optimization strategies:
 - `isRendering` state management for UI responsiveness
 - Graceful handling of rendering cancellation exceptions
 - Proper cleanup on component unmount to prevent memory leaks
+
+### Dimension Reporting Performance
+**New** The dimension reporting system includes:
+- ResizeObserver for efficient container dimension monitoring
+- Debounced dimension change events prevent excessive re-calculations
+- Auto-fit calculations only occur when necessary
+- Page dimension caching prevents redundant calculations
 
 ### Debugging Performance Impact
 **New** The enhanced debugging capabilities include:
@@ -687,6 +773,28 @@ Common issues and their solutions:
 - Monitor rate limiting and quotas
 - Verify task queue management
 
+### Enhanced Zoom Input Issues
+**New** Common zoom input handling problems and solutions:
+- **Issue**: Zoom input not accepting custom values
+  - **Solution**: Ensure numeric input field is properly configured
+  - **Solution**: Verify onChange handler accepts any numeric input
+  - **Solution**: Check constraint validation logic for 1-500% range
+
+- **Issue**: Zoom input not validating on Enter key
+  - **Solution**: Verify onKeyDown handler processes Enter key correctly
+  - **Solution**: Check constraint calculation logic in keydown handler
+  - **Solution**: Ensure input blur after Enter key processing
+
+- **Issue**: Zoom input not constraining on blur
+  - **Solution**: Verify onBlur handler applies constraint validation
+  - **Solution**: Check that constrained zoom is different from current zoom
+  - **Solution**: Ensure onZoomChange is called with constrained value
+
+- **Issue**: Zoom input styling issues
+  - **Solution**: Check CSS class `.zoom-input` styling
+  - **Solution**: Verify focus state styling with `.zoom-input:focus`
+  - **Solution**: Ensure proper text alignment and padding
+
 ### Wheel Event Handling Issues
 **New** Common wheel event handling problems and solutions:
 - **Issue**: Wheel events not triggering page navigation
@@ -722,6 +830,23 @@ Common issues and their solutions:
   - **Solution**: Check for `RenderingCancelledException` in error handling
   - **Solution**: Ensure proper exception handling in rendering tasks
 
+### Dimension Reporting Issues
+**New** Common dimension reporting problems and solutions:
+- **Issue**: Page dimensions not reported correctly
+  - **Solution**: Verify `onPageDimensionsChange` callback is properly invoked
+  - **Solution**: Check viewport calculation logic
+  - **Solution**: Ensure dimension reporting occurs after successful render
+
+- **Issue**: Container dimensions not updating
+  - **Solution**: Verify ResizeObserver is properly configured
+  - **Solution**: Check `onContainerDimensionsChange` callback implementation
+  - **Solution**: Ensure cleanup of ResizeObserver on component unmount
+
+- **Issue**: Auto-fit calculations incorrect
+  - **Solution**: Verify padding calculations (40px constant)
+  - **Solution**: Check scale calculation logic for fit-width and fit-height
+  - **Solution**: Ensure auto-fit only occurs when dimensions are available
+
 ### Debugging Issues
 **New** Common debugging problems and solutions:
 - **Issue**: Missing debug logs
@@ -740,6 +865,7 @@ Common issues and their solutions:
 - [src/core/PluginManager.ts:60-69](file://src/core/PluginManager.ts#L60-L69)
 - [src/renderer/components/PDFViewer.tsx:158-225](file://src/renderer/components/PDFViewer.tsx#L158-L225)
 - [src/renderer/components/PDFViewer.tsx:227-288](file://src/renderer/components/PDFViewer.tsx#L227-L288)
+- [src/renderer/components/Toolbar.tsx:106-137](file://src/renderer/components/Toolbar.tsx#L106-L137)
 
 ## Conclusion
 The SciPDFReader PDF Viewer Enhancement project demonstrates a sophisticated approach to building modern desktop applications with AI integration and extensibility. The architecture successfully balances functionality, performance, and maintainability through careful design decisions and modular component organization.
@@ -757,7 +883,10 @@ Key strengths of the implementation include:
 - **Updated** `isRendering` state management for coordinated UI updates
 - **Updated** Extensive debugging capabilities with comprehensive console logging
 - **Updated** Proper cleanup mechanisms preventing memory leaks and resource waste
+- **Updated** Sophisticated numeric zoom input system with validation and constraint mechanisms
+- **Updated** Comprehensive dimension reporting system with page and container tracking
+- **Updated** Enhanced styling with focus states and validation feedback for zoom input
 
 The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, expanded AI capabilities, and refined user interaction patterns. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
 
-**Updated** The addition of enhanced wheel event handling with 500ms throttling, rendering task cancellation support, improved edge detection logic, and smooth scroll behavior significantly enhances the user experience in single-page scrolling mode. The intelligent `isRendering` state management and `renderTaskRef` tracking provide proper cleanup mechanisms, preventing memory leaks and ensuring optimal performance during rapid page navigation. The wheel event system operates transparently without requiring user intervention, automatically managing page transitions based on scroll behavior and viewport boundaries while coordinating with the rendering system for seamless operation. The comprehensive debugging capabilities enable developers to monitor performance, track rendering progress, and identify optimization opportunities throughout the application lifecycle.
+**Updated** The addition of enhanced zoom functionality with custom numeric input field, improved zoom calculation logic, dimension reporting capabilities, and styling updates significantly enhances the user experience. The numeric zoom input provides precise control with real-time validation, constraint mechanisms, and Enter key processing. The comprehensive dimension reporting system with ResizeObserver ensures optimal zoom calculations and responsive scaling. The enhanced wheel event handling with 500ms throttling, intelligent edge detection, and `isRendering` state management provides smooth single-page navigation. The sophisticated styling system with focus states and validation feedback creates a professional user interface. Together, these enhancements demonstrate a mature approach to PDF viewer functionality with attention to both user experience and technical excellence.

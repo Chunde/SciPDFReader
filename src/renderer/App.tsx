@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PDFViewer from './components/PDFViewer';
 import Sidebar from './components/Sidebar';
 import RightPanel from './components/RightPanel';
@@ -22,7 +22,8 @@ const App: React.FC = () => {
   const [scrollMode, setScrollMode] = useState<'fit-height' | 'scroll'>('fit-height');
   const [pageDimensions, setPageDimensions] = useState<{width: number, height: number}>({width: 0, height: 0});
   const [containerDimensions, setContainerDimensions] = useState<{width: number, height: number}>({width: 800, height: 600});
-  const [zoomMode, setZoomMode] = useState<'manual' | 'fit-width' | 'fit-height'>('manual');
+  const [zoomMode, setZoomMode] = useState<'manual' | 'fit-width' | 'fit-height' | 'auto'>('manual');
+  const isProgrammaticUpdate = useRef(false);
   
   console.log('[App] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'scrollMode:', scrollMode, 'zoomMode:', zoomMode);
 
@@ -53,6 +54,52 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Always recalculate scale when zoomMode is fit-width, fit-height, or auto
+  useEffect(() => {
+    if (pageDimensions.width <= 0 || pageDimensions.height <= 0 || 
+        containerDimensions.width <= 0 || containerDimensions.height <= 0) {
+      return;
+    }
+
+    const padding = 40;
+
+    if (zoomMode === 'fit-width') {
+      const newScale = (containerDimensions.width - padding) / pageDimensions.width;
+      const newZoom = Math.round(newScale * 100);
+      console.log('[App] useEffect fit-width recalc: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
+      isProgrammaticUpdate.current = true;
+      setScale(newScale);
+      setZoom(newZoom);
+    } else if (zoomMode === 'fit-height') {
+      const newScale = (containerDimensions.height - padding) / pageDimensions.height;
+      const newZoom = Math.round(newScale * 100);
+      console.log('[App] useEffect fit-height recalc: container:', containerDimensions.height, 'page:', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
+      isProgrammaticUpdate.current = true;
+      setScale(newScale);
+      setZoom(newZoom);
+    } else if (zoomMode === 'auto') {
+      const fitWidthScale = (containerDimensions.width - padding) / pageDimensions.width;
+      const fitHeightScale = (containerDimensions.height - padding) / pageDimensions.height;
+      const autoScale = Math.min(fitWidthScale, fitHeightScale);
+      const newZoom = Math.round(autoScale * 100);
+      console.log('[App] useEffect auto recalc: fitWidth:', fitWidthScale, 'fitHeight:', fitHeightScale, 'scale:', autoScale, 'zoom:', newZoom);
+      isProgrammaticUpdate.current = true;
+      setScale(autoScale);
+      setZoom(newZoom);
+    }
+    // zoomMode === 'manual' - don't recalculate
+  }, [pageDimensions, containerDimensions, zoomMode]);
+
+  // Reset programmatic flag after state updates
+  useEffect(() => {
+    if (isProgrammaticUpdate.current) {
+      const timeout = setTimeout(() => {
+        isProgrammaticUpdate.current = false;
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [zoom]);
+
   const loadPDF = async (filePath: string) => {
     console.log('[App] Loading PDF from:', filePath);
     try {
@@ -62,8 +109,10 @@ const App: React.FC = () => {
         setCurrentDocument(result);
         setCurrentPage(1);
         setPageDimensions({width: 0, height: 0});
-        setZoomMode('fit-width'); // Default to fit-width on new PDF
-        console.log('[App] Document set successfully');
+        setZoom(100);
+        setScale(1); // Start at 100% to get original page dimensions
+        setZoomMode('auto'); // Will auto-fit after page dimensions are known
+        console.log('[App] Document set successfully - auto-fit will be calculated');
       } else {
         console.error('[App] Failed to load PDF:', result?.error);
       }
@@ -218,11 +267,18 @@ const App: React.FC = () => {
             onOpenFile={handleOpenFile}
             onSave={() => console.log('Save')}
             onZoomChange={(newZoom) => {
-              console.log('[App] Zoom changed to:', newZoom);
+              console.log('[App] Zoom changed (user action):', newZoom);
               setZoom(newZoom);
               setScale(newZoom / 100);
-              setZoomMode('manual');
+              setZoomMode('manual'); // User action - switch to manual mode
             }}
+            onZoomChangeExternal={(newZoom) => {
+              console.log('[App] Zoom changed (external):', newZoom);
+              setZoom(newZoom);
+              setScale(newZoom / 100);
+              // Does NOT change zoomMode - preserves current mode
+            }}
+            isProgrammaticUpdate={isProgrammaticUpdate}
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
@@ -232,30 +288,12 @@ const App: React.FC = () => {
             pageDimensions={pageDimensions}
             containerDimensions={containerDimensions}
             onFitToWidth={() => {
-              if (pageDimensions.width > 0 && containerDimensions.width > 0) {
-                const padding = 40;
-                const newScale = (containerDimensions.width - padding) / pageDimensions.width;
-                const newZoom = Math.round(newScale * 100);
-                console.log('[App] Fit to width: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
-                setScale(newScale);
-                setZoom(newZoom);
-                setZoomMode('fit-width');
-              } else {
-                console.log('[App] Fit to width: waiting for dimensions - page:', pageDimensions, 'container:', containerDimensions);
-              }
+              console.log('[App] Fit to width clicked');
+              setZoomMode('fit-width'); // useEffect will calculate the actual zoom
             }}
             onFitToHeight={() => {
-              if (pageDimensions.height > 0 && containerDimensions.height > 0) {
-                const padding = 40;
-                const newScale = (containerDimensions.height - padding) / pageDimensions.height;
-                const newZoom = Math.round(newScale * 100);
-                console.log('[App] Fit to height: container:', containerDimensions.height, 'page:', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
-                setScale(newScale);
-                setZoom(newZoom);
-                setZoomMode('fit-height');
-              } else {
-                console.log('[App] Fit to height: waiting for dimensions - page:', pageDimensions, 'container:', containerDimensions);
-              }
+              console.log('[App] Fit to height clicked');
+              setZoomMode('fit-height'); // useEffect will calculate the actual zoom
             }}
           />
           
@@ -270,28 +308,12 @@ const App: React.FC = () => {
             onPageDimensionsChange={(width, height) => {
               console.log('[App] Page dimensions changed:', width, 'x', height);
               setPageDimensions({width, height});
+              // Recalculation handled by useEffect
             }}
             onContainerDimensionsChange={(width, height) => {
               console.log('[App] Container dimensions changed:', width, 'x', height);
               setContainerDimensions({width, height});
-              
-              // Auto-recalculate fit-to modes when window resizes
-              if (pageDimensions.width > 0 && pageDimensions.height > 0) {
-                const padding = 40;
-                if (zoomMode === 'fit-width') {
-                  const newScale = (width - padding) / pageDimensions.width;
-                  const newZoom = Math.round(newScale * 100);
-                  console.log('[App] Auto recalculating fit-to-width: container:', width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
-                  setScale(newScale);
-                  setZoom(newZoom);
-                } else if (zoomMode === 'fit-height') {
-                  const newScale = (height - padding) / pageDimensions.height;
-                  const newZoom = Math.round(newScale * 100);
-                  console.log('[App] Auto recalculating fit-to-height: container:', height, 'page:', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
-                  setScale(newScale);
-                  setZoom(newZoom);
-                }
-              }
+              // Recalculation handled by useEffect
             }}
           />
         </div>

@@ -4,6 +4,8 @@ interface ToolbarProps {
   onOpenFile: () => void;
   onSave: () => void;
   onZoomChange: (zoom: number) => void;
+  onZoomChangeExternal?: (zoom: number) => void; // For programmatic updates
+  isProgrammaticUpdate?: React.MutableRefObject<boolean>;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -20,6 +22,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onOpenFile, 
   onSave, 
   onZoomChange, 
+  onZoomChangeExternal,
+  isProgrammaticUpdate,
   currentPage, 
   totalPages, 
   onPageChange, 
@@ -36,13 +40,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [viewMenuOpen, setViewMenuOpen] = React.useState(false);
 
   const handleZoomIn = () => {
-    const newZoom = Math.min(zoom + 25, 300);
-    onZoomChange(newZoom);
+    const newZoom = Math.min(zoom + 25, 500);
+    onZoomChange(newZoom); // User action - switch to manual mode
   };
 
   const handleZoomOut = () => {
-    const newZoom = Math.max(zoom - 25, 50);
-    onZoomChange(newZoom);
+    const newZoom = Math.max(zoom - 25, 1);
+    onZoomChange(newZoom); // User action - switch to manual mode
   };
 
   const handleFitWidth = () => {
@@ -108,10 +112,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
           className="zoom-input"
           value={zoom}
           onChange={(e) => {
-            // Allow typing any value - no validation while typing
+            // Allow typing any value - use external callback if available
             const newZoom = parseInt(e.target.value);
             if (!isNaN(newZoom) && newZoom > 0) {
-              onZoomChange(newZoom);
+              // Skip if this is a programmatic update
+              if (isProgrammaticUpdate?.current) {
+                return;
+              }
+              if (onZoomChangeExternal) {
+                onZoomChangeExternal(newZoom);
+              } else {
+                onZoomChange(newZoom);
+              }
             }
           }}
           onKeyDown={(e) => {
@@ -120,6 +132,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               const newZoom = parseInt(input.value) || 100;
               // Constrain to valid range when user presses Enter
               const constrainedZoom = Math.min(500, Math.max(1, newZoom));
+              // On Enter, this is a user commit - switch to manual mode
               onZoomChange(constrainedZoom);
               input.blur();
             }
@@ -127,10 +140,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onBlur={(e) => {
             const input = e.target as HTMLInputElement;
             const newZoom = parseInt(input.value) || 100;
-            // Reset to valid range if user clicks away without pressing Enter
+            // Constrain to valid range if user clicks away without pressing Enter
             const constrainedZoom = Math.min(500, Math.max(1, newZoom));
             if (constrainedZoom !== zoom) {
-              onZoomChange(constrainedZoom);
+              // Skip if this is a programmatic update
+              if (isProgrammaticUpdate?.current) {
+                return;
+              }
+              // On blur without Enter, use external callback to avoid mode change
+              if (onZoomChangeExternal) {
+                onZoomChangeExternal(constrainedZoom);
+              } else {
+                onZoomChange(constrainedZoom);
+              }
             }
           }}
           title="Zoom percentage"
