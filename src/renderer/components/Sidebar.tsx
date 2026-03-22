@@ -108,10 +108,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, document, onPage
         {document ? (
           <div>
             <div style={{ marginBottom: '16px' }}>
-              <strong>Title:</strong> {document.title || 'Untitled'}
+              <strong>Title:</strong> {document.name || 'Untitled'}
             </div>
             <div style={{ marginBottom: '8px' }}>
-              <strong>Pages:</strong> {document.numPages || 0}
+              <strong>Pages:</strong> {document.pdfDoc?.numPages || document.numPages || 0}
             </div>
             
             <div style={{ marginTop: '24px' }}>
