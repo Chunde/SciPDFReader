@@ -18,9 +18,12 @@ interface PDFViewerProps {
 
 const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, scrollMode, onPageDimensionsChange, onContainerDimensionsChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const renderTaskRef = useRef<any>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRendering, setIsRendering] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  let lastWheelTime = useRef(0);
   
   console.log('[PDFViewer] Rendering - currentPage:', currentPage, 'scale:', scale, 'scrollMode:', scrollMode);
 
@@ -36,12 +39,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       loadPDF(document.path);
     }
   }, [document]);
-
-  useEffect(() => {
-    if (pdfDoc) {
-      renderPage(currentPage);
-    }
-  }, [currentPage, scale, pdfDoc]);
 
   const loadPDF = async (path: string) => {
     console.log('[PDFViewer] loadPDF called with path:', path);
@@ -163,29 +160,49 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     if (scrollMode !== 'fit-height' || !pdfDoc || !containerRef.current) return;
 
     const container = containerRef.current;
-    let wheelTimeout: NodeJS.Timeout;
-    let lastWheelTime = 0;
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       
       const now = Date.now();
-      // Throttle wheel events - one page change per 300ms
-      if (now - lastWheelTime < 300) return;
-      
-      lastWheelTime = now;
-      
-      const deltaY = e.deltaY;
-      console.log('[PDFViewer] Wheel event - deltaY:', deltaY);
-      
-      // Scroll down (positive delta) - next page
-      if (deltaY > 0 && currentPage < pdfDoc.numPages) {
-        console.log('[PDFViewer] Wheel down - loading next page:', currentPage + 1);
-        onCurrentPageChange(currentPage + 1);
+      // Check if rendering is in progress - don't change page while rendering
+      if (isRendering) {
+        console.log('[PDFViewer] Skipping wheel - rendering in progress');
+        return;
       }
-      // Scroll up (negative delta) - previous page
-      else if (deltaY < 0 && currentPage > 1) {
-        console.log('[PDFViewer] Wheel up - loading previous page:', currentPage - 1);
+      
+      // Throttle wheel events - one page change per 500ms
+      if (now - lastWheelTime.current < 500) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const pageFits = scrollHeight <= clientHeight;
+      
+      console.log('[PDFViewer] Wheel - pageFits:', pageFits, 'isRendering:', isRendering);
+      
+      // If page fits perfectly, go to next/prev page immediately
+      if (pageFits) {
+        lastWheelTime.current = now;
+        if (e.deltaY > 0 && currentPage < pdfDoc.numPages) {
+          console.log('[PDFViewer] Page fits - loading next page:', currentPage + 1);
+          onCurrentPageChange(currentPage + 1);
+        } else if (e.deltaY < 0 && currentPage > 1) {
+          console.log('[PDFViewer] Page fits - loading previous page:', currentPage - 1);
+          onCurrentPageChange(currentPage - 1);
+        }
+        return;
+      }
+      
+      // Page is scrollable - check if at edges
+      const atBottom = scrollTop >= scrollHeight - clientHeight - 10;
+      const atTop = scrollTop <= 10;
+      
+      if (e.deltaY > 0 && atBottom && currentPage < pdfDoc.numPages) {
+        console.log('[PDFViewer] At bottom edge - loading next page:', currentPage + 1);
+        lastWheelTime.current = now;
+        onCurrentPageChange(currentPage + 1);
+      } else if (e.deltaY < 0 && atTop && currentPage > 1) {
+        console.log('[PDFViewer] At top edge - loading previous page:', currentPage - 1);
+        lastWheelTime.current = now;
         onCurrentPageChange(currentPage - 1);
       }
     };
@@ -194,40 +211,64 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     
     return () => {
       container.removeEventListener('wheel', handleWheel);
-      clearTimeout(wheelTimeout);
     };
-  }, [scrollMode, pdfDoc, currentPage, onCurrentPageChange]);
+  }, [scrollMode, pdfDoc, currentPage, onCurrentPageChange, isRendering]);
 
-  const renderPage = async (pageNum: number) => {
-    if (!pdfDoc || !canvasRef.current) return;
-
-    try {
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale });
-
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d')!;
-
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-
-      await page.render(renderContext).promise;
-    } catch (error) {
-      console.error('Error rendering page:', error);
-    }
-  };
-
-  // Handle fit-height mode rendering - render current page
+  // Handle rendering - properly cancel previous render tasks
   useEffect(() => {
-    if (scrollMode === 'fit-height' && pdfDoc && currentPage >= 1) {
-      console.log('[PDFViewer] Fit-height mode: rendering page', currentPage);
-      renderPage(currentPage);
+    if (scrollMode !== 'fit-height' && scrollMode !== 'scroll') return;
+    if (!pdfDoc || currentPage < 1 || !canvasRef.current) return;
+    
+    // Cancel any existing render task
+    if (renderTaskRef.current) {
+      console.log('[PDFViewer] Cancelling previous render task');
+      renderTaskRef.current.cancel();
+      renderTaskRef.current = null;
     }
+    
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    
+    const renderPage = async () => {
+      setIsRendering(true);
+      try {
+        const page = await pdfDoc.getPage(currentPage);
+        const viewport = page.getViewport({ scale });
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        
+        const renderTask = page.render(renderContext);
+        renderTaskRef.current = renderTask;
+        
+        await renderTask.promise;
+        renderTaskRef.current = null;
+        
+        console.log('[PDFViewer] Page', currentPage, 'rendered successfully');
+      } catch (error: any) {
+        if (error?.name !== 'RenderingCancelledException') {
+          console.error('[PDFViewer] Error rendering page:', error);
+        }
+      } finally {
+        setIsRendering(false);
+      }
+    };
+    
+    renderPage();
+    
+    return () => {
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+      setIsRendering(false);
+    };
   }, [scrollMode, pdfDoc, currentPage, scale]);
 
   const handleFitWidth = () => {

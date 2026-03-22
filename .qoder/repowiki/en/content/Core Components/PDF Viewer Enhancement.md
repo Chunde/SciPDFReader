@@ -19,6 +19,14 @@
 - [src/types/index.ts](file://src/types/index.ts)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated PDF Viewer component documentation to reflect intelligent wheel event handling for single-page scrolling mode
+- Added detailed explanation of sophisticated wheel event management with throttling, directional detection, and edge boundary checking
+- Enhanced component interaction diagrams to show new wheel event handling functionality
+- Updated performance considerations section to include wheel event throttling and cleanup mechanisms
+- Clarified that wheel event handling is automatically managed and requires no user interaction
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -89,7 +97,7 @@ Styles --> App
 - [src/main.ts:1-160](file://src/main.ts#L1-L160)
 - [src/preload.ts:1-35](file://src/preload.ts#L1-L35)
 - [src/renderer/App.tsx:1-297](file://src/renderer/App.tsx#L1-L297)
-- [src/renderer/components/PDFViewer.tsx:1-269](file://src/renderer/components/PDFViewer.tsx#L1-L269)
+- [src/renderer/components/PDFViewer.tsx:1-345](file://src/renderer/components/PDFViewer.tsx#L1-L345)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
@@ -112,13 +120,13 @@ The PluginManager implements a VS Code-inspired plugin system that allows third-
 The AIServiceManager coordinates AI-powered features including translation, summarization, background information retrieval, and keyword extraction. It supports multiple providers (OpenAI, Azure, local models) and provides a unified interface for AI operations.
 
 ### PDF Rendering Engine
-Built on PDF.js, the PDFViewer component handles document loading, page rendering, zoom controls, and scroll modes. It supports both single-page and continuous scrolling modes with responsive scaling.
+Built on PDF.js, the PDFViewer component handles document loading, page rendering, zoom controls, and scroll modes. It supports both single-page and continuous scrolling modes with responsive scaling and intelligent wheel event handling for enhanced user experience.
 
 **Section sources**
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
-- [src/renderer/components/PDFViewer.tsx:1-269](file://src/renderer/components/PDFViewer.tsx#L1-L269)
+- [src/renderer/components/PDFViewer.tsx:1-345](file://src/renderer/components/PDFViewer.tsx#L1-L345)
 
 ## Architecture Overview
 The application follows a client-server architecture pattern with Electron's main and renderer processes communicating through IPC channels. The design emphasizes separation of concerns and modularity.
@@ -171,7 +179,9 @@ The architecture ensures secure communication between processes while maintainin
 ## Detailed Component Analysis
 
 ### PDF Viewer Component
-The PDFViewer component serves as the core rendering engine, implementing sophisticated page management and user interaction handling.
+The PDFViewer component serves as the core rendering engine, implementing sophisticated page management and user interaction handling with intelligent wheel event processing.
+
+**Updated** The PDFViewer now includes advanced wheel event handling for single-page scrolling mode with intelligent page navigation:
 
 ```mermaid
 classDiagram
@@ -197,6 +207,14 @@ class PDFViewerProps {
 +onPageDimensionsChange : Function
 +onContainerDimensionsChange : Function
 }
+class WheelEventHandler {
++lastWheelTime : number
++handleWheel(e : WheelEvent) : void
++throttleWheelEvents() : boolean
++detectDirection(e : WheelEvent) : string
++checkEdgeBoundaries() : boolean
++cleanupWheelListener() : void
+}
 class AnnotationManager {
 +createAnnotation(annotation : Annotation) : Promise<Annotation>
 +getAnnotations(pageNumber : number) : Promise<Annotation[]>
@@ -214,17 +232,122 @@ class AIServiceManager {
 PDFViewer --> AnnotationManager : "uses for persistence"
 PDFViewer --> AIServiceManager : "uses for AI features"
 PDFViewer --> PDFViewerProps : "implements interface"
+PDFViewer --> WheelEventHandler : "manages wheel events"
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:19-269](file://src/renderer/components/PDFViewer.tsx#L19-L269)
+- [src/renderer/components/PDFViewer.tsx:19-345](file://src/renderer/components/PDFViewer.tsx#L19-L345)
 - [src/core/AnnotationManager.ts:46-84](file://src/core/AnnotationManager.ts#L46-L84)
 - [src/core/AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
 
-The component implements responsive design with dynamic scaling, supports multiple rendering modes, and integrates with the annotation system for collaborative document editing.
+The component implements responsive design with dynamic scaling, supports multiple rendering modes, integrates with the annotation system for collaborative document editing, and features intelligent wheel event handling for enhanced single-page navigation.
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:19-269](file://src/renderer/components/PDFViewer.tsx#L19-L269)
+- [src/renderer/components/PDFViewer.tsx:19-345](file://src/renderer/components/PDFViewer.tsx#L19-L345)
+
+### Wheel Event Handling System
+**New** The PDFViewer now includes sophisticated wheel event management for single-page scrolling mode:
+
+#### Intelligent Page Navigation Logic
+The wheel event handler implements a multi-layered approach to determine when to navigate between pages:
+
+1. **Throttling Mechanism**: Prevents rapid successive page changes with a 400ms cooldown period
+2. **Page Fit Detection**: Determines if the current page fits entirely within the viewport
+3. **Edge Boundary Checking**: Identifies when the user has reached the top or bottom edge of a scrollable page
+4. **Directional Detection**: Uses deltaY values to determine scroll direction
+5. **Boundary Buffer System**: Accounts for minor scroll inaccuracies with 10px tolerance
+
+#### Wheel Event Processing Flow
+```mermaid
+flowchart TD
+Start([Wheel Event Received]) --> CheckMode{Scroll Mode == 'fit-height'?}
+CheckMode --> |No| Ignore[Ignore Wheel Event]
+CheckMode --> |Yes| GetContainer[Get Container Dimensions]
+GetContainer --> Throttle{Within 400ms Throttle?}
+Throttle --> |Yes| Ignore
+Throttle --> |No| CheckFit{Page Fits Entirely?}
+CheckFit --> |Yes| CheckDirection1{deltaY > 0?}
+CheckDirection1 --> |Yes| NextPage[Go to Next Page]
+CheckDirection1 --> |No| PrevPage[Go to Previous Page]
+CheckFit --> |No| CheckEdges[Check Edge Boundaries]
+CheckEdges --> AtBottom{At Bottom Edge?}
+AtBottom --> |Yes| CheckDirection2{deltaY > 0?}
+CheckDirection2 --> |Yes| NextPage
+CheckDirection2 --> |No| Continue[Continue Natural Scroll]
+AtBottom --> |No| AtTop{At Top Edge?}
+AtTop --> |Yes| CheckDirection3{deltaY < 0?}
+CheckDirection3 --> |Yes| Continue
+CheckDirection3 --> |No| PrevPage
+AtTop --> |No| Continue
+```
+
+**Diagram sources**
+- [src/renderer/components/PDFViewer.tsx:156-212](file://src/renderer/components/PDFViewer.tsx#L156-L212)
+
+#### Cleanup and Resource Management
+The wheel event handler includes proper cleanup mechanisms:
+- Automatic removal of event listeners on component unmount
+- Prevention of memory leaks through proper event listener cleanup
+- Safe handling of edge cases during component lifecycle
+
+**Section sources**
+- [src/renderer/components/PDFViewer.tsx:156-212](file://src/renderer/components/PDFViewer.tsx#L156-L212)
+
+### Toolbar Component
+The Toolbar component provides the primary user interface controls for PDF navigation and viewing options. **Updated** The toolbar interface has been simplified with certain controls moved to alternative locations while maintaining full functionality.
+
+```mermaid
+classDiagram
+class Toolbar {
++React.FC~ToolbarProps~
+-onOpenFile : Function
+-onSave : Function
+-onZoomChange : Function
+-currentPage : number
+-totalPages : number
+-onPageChange : Function
+-zoom : number
+-scrollMode : 'fit-height' | 'scroll'
+-onScrollModeChange : Function
+-pageDimensions : Dimensions
+-containerDimensions : Dimensions
+-onFitToWidth : Function
+-onFitToHeight : Function
+-handleZoomIn() : void
+-handleZoomOut() : void
+-handleFitWidth() : void
+}
+class ToolbarProps {
++onOpenFile : Function
++onSave : Function
++onZoomChange : Function
++currentPage : number
++totalPages : number
++onPageChange : Function
++zoom : number
++scrollMode : 'fit-height' | 'scroll'
++onScrollModeChange : Function
++pageDimensions : Dimensions
++containerDimensions : Dimensions
++onFitToWidth : Function
++onFitToHeight : Function
+}
+Toolbar --> ToolbarProps : "implements interface"
+```
+
+**Diagram sources**
+- [src/renderer/components/Toolbar.tsx:3-17](file://src/renderer/components/Toolbar.tsx#L3-L17)
+- [src/renderer/components/Toolbar.tsx:19-208](file://src/renderer/components/Toolbar.tsx#L19-L208)
+
+**Updated** The toolbar now features a streamlined interface with:
+- File operations (Open, Save)
+- Navigation controls (Previous, Next page)
+- Zoom controls (Zoom In, Zoom Out, Zoom selection)
+- View options accessible through dropdown menu
+- Annotation tools (Highlight, Underline, Note, Translate)
+
+**Section sources**
+- [src/renderer/components/Toolbar.tsx:19-208](file://src/renderer/components/Toolbar.tsx#L19-L208)
 
 ### Annotation Management System
 The AnnotationManager provides a comprehensive solution for annotation persistence, retrieval, and export functionality.
@@ -419,12 +542,22 @@ The application implements several performance optimization strategies:
 - Efficient annotation data structures using Maps
 - Conditional rendering based on component state
 - Cleanup of PDF rendering contexts
+- **Updated** Intelligent wheel event throttling prevents excessive page navigation requests
+- **Updated** Edge boundary detection reduces unnecessary page changes
 
 ### Network and I/O Optimization
 - Buffered file reading for large PDFs
 - Caching mechanisms for frequently accessed data
 - Asynchronous operations to prevent UI blocking
 - Efficient IPC communication patterns
+
+### Wheel Event Performance
+**New** The wheel event handling system includes several performance optimizations:
+- 400ms throttle prevents rapid successive page changes
+- Edge boundary checking avoids unnecessary DOM operations
+- Directional detection uses efficient delta comparison
+- Cleanup mechanisms prevent memory leaks
+- Passive event listeners with manual prevention for optimal performance
 
 ## Troubleshooting Guide
 Common issues and their solutions:
@@ -453,10 +586,30 @@ Common issues and their solutions:
 - Monitor rate limiting and quotas
 - Verify task queue management
 
+### Wheel Event Handling Issues
+**New** Common wheel event handling problems and solutions:
+- **Issue**: Wheel events not triggering page navigation
+  - **Solution**: Ensure scroll mode is set to 'fit-height'
+  - **Solution**: Verify container element has proper dimensions
+  - **Solution**: Check browser compatibility with wheel events
+
+- **Issue**: Excessive page navigation with rapid scrolling
+  - **Solution**: Adjust throttle timing in wheel event handler
+  - **Solution**: Verify edge boundary detection logic
+
+- **Issue**: Wheel events not being cleaned up properly
+  - **Solution**: Check component unmount lifecycle
+  - **Solution**: Verify event listener removal in cleanup function
+
+- **Issue**: Page navigation conflicts with natural scrolling
+  - **Solution**: Adjust edge boundary thresholds
+  - **Solution**: Fine-tune directional detection sensitivity
+
 **Section sources**
 - [src/renderer/components/PDFViewer.tsx:74-78](file://src/renderer/components/PDFViewer.tsx#L74-L78)
 - [src/core/AnnotationManager.ts:153-170](file://src/core/AnnotationManager.ts#L153-L170)
 - [src/core/PluginManager.ts:60-69](file://src/core/PluginManager.ts#L60-L69)
+- [src/renderer/components/PDFViewer.tsx:156-212](file://src/renderer/components/PDFViewer.tsx#L156-L212)
 
 ## Conclusion
 The SciPDFReader PDF Viewer Enhancement project demonstrates a sophisticated approach to building modern desktop applications with AI integration and extensibility. The architecture successfully balances functionality, performance, and maintainability through careful design decisions and modular component organization.
@@ -467,5 +620,8 @@ Key strengths of the implementation include:
 - Robust annotation system with multiple export formats
 - Flexible AI service integration with multiple provider support
 - Responsive PDF rendering with advanced scaling capabilities
+- **Updated** Intelligent wheel event handling for enhanced single-page navigation experience
 
-The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, and expanded AI capabilities. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
+The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, expanded AI capabilities, and refined user interaction patterns. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
+
+**Updated** The addition of intelligent wheel event handling significantly enhances the user experience in single-page scrolling mode by providing smooth, responsive page navigation with sophisticated edge detection and throttling mechanisms. The wheel event system operates transparently without requiring user intervention, automatically managing page transitions based on scroll behavior and viewport boundaries.
