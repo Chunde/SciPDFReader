@@ -21,13 +21,13 @@
 
 ## Update Summary
 **Changes Made**
-- Updated Toolbar component documentation to reflect enhanced zoom functionality with custom numeric input field
-- Added detailed explanation of zoom validation and constraint mechanisms with 1-500% range limits
-- Enhanced zoom calculation logic with improved dimension reporting capabilities
-- Updated styling documentation for zoom input field with focus states and validation feedback
-- Clarified that the toolbar now features a numeric zoom input with Enter key validation and blur constraints
-- Added comprehensive dimension reporting system with page and container dimension tracking
+- Added intelligent auto-zoom feature with 'auto' mode for automatic optimal scaling
+- Enhanced toolbar with programmatic zoom handling through `onZoomChangeExternal` and `isProgrammaticUpdate` props
+- Improved PDF viewer dimension reporting with ResizeObserver for real-time container monitoring
+- Implemented state synchronization mechanism to eliminate blinking issues during page transitions
+- Added comprehensive zoom mode management with 'manual', 'fit-width', 'fit-height', and 'auto' modes
 - Enhanced wheel event handling with improved edge detection logic and `isRendering` state management
+- Updated zoom input field styling with focus states and validation feedback
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -99,7 +99,7 @@ Styles --> App
 - [src/main.ts:1-160](file://src/main.ts#L1-L160)
 - [src/preload.ts:1-35](file://src/preload.ts#L1-L35)
 - [src/renderer/App.tsx:1-335](file://src/renderer/App.tsx#L1-L335)
-- [src/renderer/components/PDFViewer.tsx:1-379](file://src/renderer/components/PDFViewer.tsx#L1-L379)
+- [src/renderer/components/PDFViewer.tsx:1-381](file://src/renderer/components/PDFViewer.tsx#L1-L381)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
@@ -128,7 +128,7 @@ Built on PDF.js, the PDFViewer component handles document loading, page renderin
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
-- [src/renderer/components/PDFViewer.tsx:1-379](file://src/renderer/components/PDFViewer.tsx#L1-L379)
+- [src/renderer/components/PDFViewer.tsx:1-381](file://src/renderer/components/PDFViewer.tsx#L1-L381)
 
 ## Architecture Overview
 The application follows a client-server architecture pattern with Electron's main and renderer processes communicating through IPC channels. The design emphasizes separation of concerns and modularity.
@@ -240,19 +240,27 @@ PDFViewer --> WheelEventHandler : "manages wheel events"
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:19-379](file://src/renderer/components/PDFViewer.tsx#L19-L379)
+- [src/renderer/components/PDFViewer.tsx:19-381](file://src/renderer/components/PDFViewer.tsx#L19-L381)
 - [src/core/AnnotationManager.ts:46-84](file://src/core/AnnotationManager.ts#L46-L84)
 - [src/core/AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
 
 The component implements responsive design with dynamic scaling, supports multiple rendering modes, integrates with the annotation system for collaborative document editing, and features intelligent wheel event handling for enhanced single-page navigation.
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:19-379](file://src/renderer/components/PDFViewer.tsx#L19-L379)
+- [src/renderer/components/PDFViewer.tsx:19-381](file://src/renderer/components/PDFViewer.tsx#L19-L381)
 
 ### Enhanced Zoom Functionality
 **New** The Toolbar component now features a sophisticated numeric zoom input system with comprehensive validation and constraint mechanisms:
 
-#### Numeric Zoom Input System
+#### Intelligent Auto-Zoom Feature
+**New** The application now supports an intelligent auto-zoom mode that automatically calculates optimal zoom levels based on container and page dimensions:
+
+1. **Auto Zoom Mode**: New 'auto' zoom mode that automatically calculates the best fit for both width and height
+2. **Intelligent Scaling**: Uses `Math.min(fitWidthScale, fitHeightScale)` to ensure content fits within available space
+3. **Programmatic Updates**: Uses `isProgrammaticUpdate` ref to prevent mode changes during automatic calculations
+4. **State Synchronization**: Prevents blinking issues during page transitions with proper state management
+
+#### Enhanced Numeric Zoom Input System
 The zoom input field provides precise control over zoom levels with the following features:
 
 1. **Custom Numeric Input Field**: Replaces the previous dropdown-based system with a direct numeric input
@@ -261,6 +269,14 @@ The zoom input field provides precise control over zoom levels with the followin
 4. **Enter Key Processing**: Validates and constrains zoom level when user presses Enter
 5. **Blur Handling**: Automatically constrains zoom level when input loses focus
 6. **Visual Feedback**: Enhanced styling with focus states and validation indicators
+
+#### Programmatic Zoom Handling
+**New** The toolbar now supports programmatic zoom updates through enhanced callback mechanisms:
+
+1. **onZoomChangeExternal**: New callback for programmatic zoom updates without changing zoom mode
+2. **isProgrammaticUpdate**: Ref object to track programmatic update state and prevent mode changes
+3. **State Synchronization**: Prevents blinking during page transitions by coordinating with App component state
+4. **Mode Preservation**: External zoom changes preserve current zoom mode (manual, fit-width, fit-height, auto)
 
 #### Zoom Input Processing Flow
 ```mermaid
@@ -277,14 +293,13 @@ ValidateAndConstrain2 --> ApplyZoom2[Apply constrained zoom level]
 BlurEvent --> |No| MouseClick{Mouse click elsewhere?}
 MouseClick --> |Yes| ValidateAndConstrain3[Validate 1-500% range]
 ValidateAndConstrain3 --> ApplyZoom3[Apply constrained zoom level]
-MouseClick --> |No| End([No action])
-ApplyZoom --> End
+ApplyZoom --> End([User Action - Switch to Manual Mode])
 ApplyZoom2 --> End
 ApplyZoom3 --> End
 ```
 
 **Diagram sources**
-- [src/renderer/components/Toolbar.tsx:106-137](file://src/renderer/components/Toolbar.tsx#L106-L137)
+- [src/renderer/components/Toolbar.tsx:106-164](file://src/renderer/components/Toolbar.tsx#L106-L164)
 
 #### Enhanced Dimension Reporting System
 **New** The PDFViewer component now includes comprehensive dimension reporting capabilities:
@@ -315,7 +330,7 @@ ApplyZoom --> WaitResize
 - [src/renderer/App.tsx:270-288](file://src/renderer/App.tsx#L270-L288)
 
 **Section sources**
-- [src/renderer/components/Toolbar.tsx:106-137](file://src/renderer/components/Toolbar.tsx#L106-L137)
+- [src/renderer/components/Toolbar.tsx:106-164](file://src/renderer/components/Toolbar.tsx#L106-L164)
 - [src/renderer/components/PDFViewer.tsx:64-70](file://src/renderer/components/PDFViewer.tsx#L64-L70)
 - [src/renderer/components/PDFViewer.tsx:119-148](file://src/renderer/components/PDFViewer.tsx#L119-L148)
 - [src/renderer/App.tsx:270-288](file://src/renderer/App.tsx#L270-L288)
@@ -454,6 +469,8 @@ class Toolbar {
 -onOpenFile : Function
 -onSave : Function
 -onZoomChange : Function
+-onZoomChangeExternal : Function
+-isProgrammaticUpdate : RefObject<boolean>
 -currentPage : number
 -totalPages : number
 -onPageChange : Function
@@ -472,6 +489,8 @@ class ToolbarProps {
 +onOpenFile : Function
 +onSave : Function
 +onZoomChange : Function
++onZoomChangeExternal : Function
++isProgrammaticUpdate : RefObject<boolean>
 +currentPage : number
 +totalPages : number
 +onPageChange : Function
@@ -487,18 +506,48 @@ Toolbar --> ToolbarProps : "implements interface"
 ```
 
 **Diagram sources**
-- [src/renderer/components/Toolbar.tsx:3-17](file://src/renderer/components/Toolbar.tsx#L3-L17)
-- [src/renderer/components/Toolbar.tsx:19-225](file://src/renderer/components/Toolbar.tsx#L19-L225)
+- [src/renderer/components/Toolbar.tsx:3-19](file://src/renderer/components/Toolbar.tsx#L3-L19)
+- [src/renderer/components/Toolbar.tsx:21-247](file://src/renderer/components/Toolbar.tsx#L21-L247)
 
 **Updated** The toolbar now features a streamlined interface with enhanced zoom controls:
 - File operations (Open, Save)
 - Navigation controls (Previous, Next page)
 - **Enhanced** Zoom controls with numeric input field (Zoom In, Zoom Out, Custom zoom input)
+- **Enhanced** Programmatic zoom handling with external callbacks
+- **Enhanced** State synchronization to prevent mode changes during automatic updates
 - View options accessible through dropdown menu
 - Annotation tools (Highlight, Underline, Note, Translate)
 
 **Section sources**
-- [src/renderer/components/Toolbar.tsx:19-225](file://src/renderer/components/Toolbar.tsx#L19-L225)
+- [src/renderer/components/Toolbar.tsx:21-247](file://src/renderer/components/Toolbar.tsx#L21-L247)
+
+### Enhanced Zoom Mode Management
+**New** The application now supports four distinct zoom modes with intelligent switching:
+
+#### Zoom Mode Types
+1. **Manual Mode**: User-controlled zoom levels (1-500%)
+2. **Fit Width Mode**: Automatically scales to fit page width
+3. **Fit Height Mode**: Automatically scales to fit page height
+4. **Auto Mode**: Intelligent auto-fit using both width and height constraints
+
+#### Auto Zoom Calculation Logic
+The auto zoom mode calculates optimal scaling using:
+- `fitWidthScale = containerDimensions.width / pageDimensions.width`
+- `fitHeightScale = containerDimensions.height / pageDimensions.height`
+- `autoScale = Math.min(fitWidthScale, fitHeightScale)`
+- `newZoom = Math.round(autoScale * 100)`
+
+#### State Synchronization Mechanism
+The `isProgrammaticUpdate` ref prevents blinking during page transitions:
+- Set to `true` during programmatic zoom updates
+- Automatically reset after 100ms delay
+- Prevents mode changes during automatic calculations
+- Coordinates with App component state updates
+
+**Section sources**
+- [src/renderer/App.tsx:25-26](file://src/renderer/App.tsx#L25-L26)
+- [src/renderer/App.tsx:57-90](file://src/renderer/App.tsx#L57-L90)
+- [src/renderer/App.tsx:92-100](file://src/renderer/App.tsx#L92-L100)
 
 ### Annotation Management System
 The AnnotationManager provides a comprehensive solution for annotation persistence, retrieval, and export functionality.
@@ -738,6 +787,13 @@ The application implements several performance optimization strategies:
 - Auto-fit calculations only occur when necessary
 - Page dimension caching prevents redundant calculations
 
+### Enhanced Zoom Mode Performance
+**New** The intelligent auto-zoom feature includes:
+- Efficient auto-fit calculation using `Math.min()` for optimal performance
+- Programmatic update tracking prevents unnecessary re-renders
+- State synchronization mechanism prevents blinking during page transitions
+- `isProgrammaticUpdate` ref provides atomic state updates
+
 ### Debugging Performance Impact
 **New** The enhanced debugging capabilities include:
 - Console logging with performance monitoring
@@ -794,6 +850,23 @@ Common issues and their solutions:
   - **Solution**: Check CSS class `.zoom-input` styling
   - **Solution**: Verify focus state styling with `.zoom-input:focus`
   - **Solution**: Ensure proper text alignment and padding
+
+### Auto Zoom Mode Issues
+**New** Common auto-zoom problems and solutions:
+- **Issue**: Auto zoom not calculating correctly
+  - **Solution**: Verify pageDimensions and containerDimensions are available
+  - **Solution**: Check that zoomMode is set to 'auto'
+  - **Solution**: Ensure useEffect dependency array includes required variables
+
+- **Issue**: Blinking during page transitions
+  - **Solution**: Verify isProgrammaticUpdate ref is properly managed
+  - **Solution**: Check that programmatic updates are reset after 100ms
+  - **Solution**: Ensure state updates coordinate with zoom changes
+
+- **Issue**: Auto zoom not preserving user mode
+  - **Solution**: Verify onZoomChangeExternal callback preserves current mode
+  - **Solution**: Check that external zoom changes don't trigger mode changes
+  - **Solution**: Ensure isProgrammaticUpdate prevents mode modifications
 
 ### Wheel Event Handling Issues
 **New** Common wheel event handling problems and solutions:
@@ -865,7 +938,7 @@ Common issues and their solutions:
 - [src/core/PluginManager.ts:60-69](file://src/core/PluginManager.ts#L60-L69)
 - [src/renderer/components/PDFViewer.tsx:158-225](file://src/renderer/components/PDFViewer.tsx#L158-L225)
 - [src/renderer/components/PDFViewer.tsx:227-288](file://src/renderer/components/PDFViewer.tsx#L227-L288)
-- [src/renderer/components/Toolbar.tsx:106-137](file://src/renderer/components/Toolbar.tsx#L106-L137)
+- [src/renderer/components/Toolbar.tsx:106-164](file://src/renderer/components/Toolbar.tsx#L106-L164)
 
 ## Conclusion
 The SciPDFReader PDF Viewer Enhancement project demonstrates a sophisticated approach to building modern desktop applications with AI integration and extensibility. The architecture successfully balances functionality, performance, and maintainability through careful design decisions and modular component organization.
@@ -886,7 +959,10 @@ Key strengths of the implementation include:
 - **Updated** Sophisticated numeric zoom input system with validation and constraint mechanisms
 - **Updated** Comprehensive dimension reporting system with page and container tracking
 - **Updated** Enhanced styling with focus states and validation feedback for zoom input
+- **Updated** Intelligent auto-zoom feature with 'auto' mode for automatic optimal scaling
+- **Updated** Enhanced toolbar with programmatic zoom handling and state synchronization
+- **Updated** State synchronization mechanism to eliminate blinking during page transitions
 
 The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, expanded AI capabilities, and refined user interaction patterns. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
 
-**Updated** The addition of enhanced zoom functionality with custom numeric input field, improved zoom calculation logic, dimension reporting capabilities, and styling updates significantly enhances the user experience. The numeric zoom input provides precise control with real-time validation, constraint mechanisms, and Enter key processing. The comprehensive dimension reporting system with ResizeObserver ensures optimal zoom calculations and responsive scaling. The enhanced wheel event handling with 500ms throttling, intelligent edge detection, and `isRendering` state management provides smooth single-page navigation. The sophisticated styling system with focus states and validation feedback creates a professional user interface. Together, these enhancements demonstrate a mature approach to PDF viewer functionality with attention to both user experience and technical excellence.
+**Updated** The addition of intelligent auto-zoom feature with 'auto' mode, enhanced toolbar with programmatic zoom handling, improved PDF viewer dimension reporting, and state synchronization to eliminate blinking issues during page transitions significantly enhances the user experience. The intelligent auto-zoom feature automatically calculates optimal zoom levels using both width and height constraints, preventing content overflow while maximizing readability. The enhanced toolbar provides sophisticated programmatic zoom handling through `onZoomChangeExternal` and `isProgrammaticUpdate` props, enabling seamless integration with external zoom controls without disrupting user preferences. The improved dimension reporting system with ResizeObserver ensures accurate zoom calculations and responsive scaling across different screen sizes and orientations. The state synchronization mechanism prevents visual artifacts during page transitions by coordinating zoom updates with page navigation. Together, these enhancements demonstrate a mature approach to PDF viewer functionality with attention to both user experience and technical excellence.

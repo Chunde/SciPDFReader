@@ -125,27 +125,33 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     const updateContainerDimensions = () => {
       if (container && onContainerDimensionsChange) {
         const rect = container.getBoundingClientRect();
-        console.log('[PDFViewer] Container dimensions changed:', rect.width, 'x', rect.height);
+        console.log('[PDFViewer] Container dimensions measured:', rect.width, 'x', rect.height);
         onContainerDimensionsChange(rect.width, rect.height);
       }
     };
 
     // Use ResizeObserver for better resize detection
-    const resizeObserver = new ResizeObserver(() => {
-      console.log('[PDFViewer] ResizeObserver triggered');
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        console.log('[PDFViewer] ResizeObserver entry:', width, 'x', height);
+      }
       updateContainerDimensions();
     });
     
     resizeObserver.observe(container);
     
-    // Initial measurement
-    updateContainerDimensions();
+    // Initial measurement - use setTimeout to ensure layout is complete
+    const initialTimeout = setTimeout(() => {
+      updateContainerDimensions();
+    }, 0);
 
     // Cleanup
     return () => {
+      clearTimeout(initialTimeout);
       resizeObserver.disconnect();
     };
-  }, []); // Empty dependency array - only run once on mount/unmount
+  }, [pdfDoc]); // Re-run when pdfDoc changes (new document loaded)
 
   // Handle scroll mode rendering - render all pages when mode changes
   useEffect(() => {
@@ -341,7 +347,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
             justifyContent: 'center', 
             alignItems: 'center',
             minHeight: '100%',
-            padding: '20px'
+            width: '100%'
           }}
         >
           <div className="pdf-page-wrapper" style={{ 

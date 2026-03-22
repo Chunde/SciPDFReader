@@ -61,28 +61,44 @@ const App: React.FC = () => {
       return;
     }
 
-    const padding = 40;
-
     if (zoomMode === 'fit-width') {
-      const newScale = (containerDimensions.width - padding) / pageDimensions.width;
+      // Use full container width - padding is handled by the container's internal padding
+      const newScale = containerDimensions.width / pageDimensions.width;
       const newZoom = Math.round(newScale * 100);
       console.log('[App] useEffect fit-width recalc: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
       isProgrammaticUpdate.current = true;
       setScale(newScale);
       setZoom(newZoom);
     } else if (zoomMode === 'fit-height') {
-      const newScale = (containerDimensions.height - padding) / pageDimensions.height;
+      // Account for scrollbar width by reducing container width slightly
+      const scrollbarWidth = 20; // Approximate scrollbar width
+      const availableHeight = containerDimensions.height;
+      const availableWidth = containerDimensions.width - scrollbarWidth;
+      
+      // Calculate scale to fit both dimensions, prioritizing the limiting dimension
+      const scaleByHeight = availableHeight / pageDimensions.height;
+      const scaleByWidth = availableWidth / pageDimensions.width;
+      const newScale = Math.min(scaleByHeight, scaleByWidth);
+      
       const newZoom = Math.round(newScale * 100);
-      console.log('[App] useEffect fit-height recalc: container:', containerDimensions.height, 'page:', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
+      console.log('[App] useEffect fit-height recalc: container:', availableWidth, 'x', availableHeight, 'page:', pageDimensions.width, 'x', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
       isProgrammaticUpdate.current = true;
       setScale(newScale);
       setZoom(newZoom);
     } else if (zoomMode === 'auto') {
-      const fitWidthScale = (containerDimensions.width - padding) / pageDimensions.width;
-      const fitHeightScale = (containerDimensions.height - padding) / pageDimensions.height;
+      // Auto-fit to use maximum area - fit within both width and height
+      const scrollbarWidth = 20;
+      const availableWidth = containerDimensions.width - scrollbarWidth;
+      const availableHeight = containerDimensions.height;
+      
+      const fitWidthScale = availableWidth / pageDimensions.width;
+      const fitHeightScale = availableHeight / pageDimensions.height;
+      
+      // Use the smaller scale to ensure page fits entirely within view
       const autoScale = Math.min(fitWidthScale, fitHeightScale);
       const newZoom = Math.round(autoScale * 100);
-      console.log('[App] useEffect auto recalc: fitWidth:', fitWidthScale, 'fitHeight:', fitHeightScale, 'scale:', autoScale, 'zoom:', newZoom);
+      
+      console.log('[App] useEffect auto recalc: available:', availableWidth, 'x', availableHeight, 'page:', pageDimensions.width, 'x', pageDimensions.height, 'fitWidth:', fitWidthScale, 'fitHeight:', fitHeightScale, 'chosen:', autoScale, 'zoom:', newZoom);
       isProgrammaticUpdate.current = true;
       setScale(autoScale);
       setZoom(newZoom);
