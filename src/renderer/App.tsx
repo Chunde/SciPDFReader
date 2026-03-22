@@ -1,11 +1,85 @@
 import * as React from 'react';
 import { useEffect, useState, useRef } from 'react';
-import PDFViewer from './components/PDFViewer';
+import PDFViewer, { ViewMode } from './components/PDFViewer';
 import Sidebar from './components/Sidebar';
 import RightPanel from './components/RightPanel';
 import Toolbar from './components/Toolbar';
 
 declare const window: any;
+
+// Centralized zoom calculation function
+// Handles all combinations of zoomMode and viewMode
+const calculateZoom = (
+  zoomMode: 'manual' | 'fit-width' | 'fit-height' | 'auto',
+  viewMode: ViewMode,
+  pageDimensions: { width: number; height: number },
+  containerDimensions: { width: number; height: number }
+): { scale: number; zoom: number } => {
+  // CSS values from PDFViewer.tsx page container
+  const PAGE_CONTAINER_PADDING = 20; // padding: 20px on each side
+  const GAP_BETWEEN_PAGES = 20; // gap: 20px between pages
+  
+  // Effective padding: only left and right (top/bottom handled differently)
+  const horizontalPadding = PAGE_CONTAINER_PADDING * 2;
+  
+  if (zoomMode === 'manual') {
+    // Manual mode - return current scale (caller should preserve it)
+    return { scale: 1, zoom: 100 };
+  }
+  
+  if (zoomMode === 'fit-width') {
+    // Calculate the total width needed for pages
+    let totalPageWidth: number;
+    
+    if (viewMode === 'two-page') {
+      // Two-page view: two pages side by side with gap between them
+      totalPageWidth = pageDimensions.width * 2 + GAP_BETWEEN_PAGES;
+    } else {
+      // Single-page or scroll view: single page
+      totalPageWidth = pageDimensions.width;
+    }
+    
+    // Available width minus padding on left and right
+    const availableWidth = containerDimensions.width - horizontalPadding;
+    const scale = availableWidth / totalPageWidth;
+    const zoom = Math.round(scale * 100);
+    console.log(`[calculateZoom] fit-width ${viewMode}: container=${containerDimensions.width}, available=${availableWidth}, totalPageWidth=${totalPageWidth}, scale=${scale}, zoom=${zoom}`);
+    return { scale, zoom };
+  }
+  
+  if (zoomMode === 'fit-height') {
+    // Fit height - ignore width, page fills vertically
+    // Subtract top/bottom padding
+    const availableHeight = containerDimensions.height - (PAGE_CONTAINER_PADDING * 2);
+    const scale = availableHeight / pageDimensions.height;
+    const zoom = Math.round(scale * 100);
+    console.log(`[calculateZoom] fit-height: container=${containerDimensions.height}, available=${availableHeight}, pageHeight=${pageDimensions.height}, scale=${scale}, zoom=${zoom}`);
+    return { scale, zoom };
+  }
+  
+  if (zoomMode === 'auto') {
+    // Auto-fit: fit within both width AND height
+    let totalPageWidth: number;
+    
+    if (viewMode === 'two-page') {
+      totalPageWidth = pageDimensions.width * 2 + GAP_BETWEEN_PAGES;
+    } else {
+      totalPageWidth = pageDimensions.width;
+    }
+    
+    const availableWidth = containerDimensions.width - horizontalPadding;
+    const availableHeight = containerDimensions.height - (PAGE_CONTAINER_PADDING * 2);
+    
+    const scaleByWidth = availableWidth / totalPageWidth;
+    const scaleByHeight = availableHeight / pageDimensions.height;
+    const scale = Math.min(scaleByWidth, scaleByHeight);
+    const zoom = Math.round(scale * 100);
+    console.log(`[calculateZoom] auto ${viewMode}: scaleByWidth=${scaleByWidth}, scaleByHeight=${scaleByHeight}, scale=${scale}, zoom=${zoom}`);
+    return { scale, zoom };
+  }
+  
+  return { scale: 1, zoom: 100 };
+};
 
 const App: React.FC = () => {
   console.log('[App] Component rendered');
@@ -19,7 +93,7 @@ const App: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.5);
   const [zoom, setZoom] = useState(100);
-  const [scrollMode, setScrollMode] = useState<'fit-height' | 'scroll'>('fit-height');
+  const [scrollMode, setScrollMode] = useState<ViewMode>('single');
   const [pageDimensions, setPageDimensions] = useState<{width: number, height: number}>({width: 0, height: 0});
   const [containerDimensions, setContainerDimensions] = useState<{width: number, height: number}>({width: 800, height: 600});
   const [zoomMode, setZoomMode] = useState<'manual' | 'fit-width' | 'fit-height' | 'auto'>('manual');
@@ -54,57 +128,24 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Always recalculate scale when zoomMode is fit-width, fit-height, or auto
+  // Recalculate scale when zoomMode, viewMode, or dimensions change
   useEffect(() => {
     if (pageDimensions.width <= 0 || pageDimensions.height <= 0 || 
         containerDimensions.width <= 0 || containerDimensions.height <= 0) {
       return;
     }
 
-    if (zoomMode === 'fit-width') {
-      // Use full container width - padding is handled by the container's internal padding
-      const newScale = containerDimensions.width / pageDimensions.width;
-      const newZoom = Math.round(newScale * 100);
-      console.log('[App] useEffect fit-width recalc: container:', containerDimensions.width, 'page:', pageDimensions.width, 'scale:', newScale, 'zoom:', newZoom);
-      isProgrammaticUpdate.current = true;
-      setScale(newScale);
-      setZoom(newZoom);
-    } else if (zoomMode === 'fit-height') {
-      // Account for scrollbar width by reducing container width slightly
-      const scrollbarWidth = 20; // Approximate scrollbar width
-      const availableHeight = containerDimensions.height;
-      const availableWidth = containerDimensions.width - scrollbarWidth;
-      
-      // Calculate scale to fit both dimensions, prioritizing the limiting dimension
-      const scaleByHeight = availableHeight / pageDimensions.height;
-      const scaleByWidth = availableWidth / pageDimensions.width;
-      const newScale = Math.min(scaleByHeight, scaleByWidth);
-      
-      const newZoom = Math.round(newScale * 100);
-      console.log('[App] useEffect fit-height recalc: container:', availableWidth, 'x', availableHeight, 'page:', pageDimensions.width, 'x', pageDimensions.height, 'scale:', newScale, 'zoom:', newZoom);
-      isProgrammaticUpdate.current = true;
-      setScale(newScale);
-      setZoom(newZoom);
-    } else if (zoomMode === 'auto') {
-      // Auto-fit to use maximum area - fit within both width and height
-      const scrollbarWidth = 20;
-      const availableWidth = containerDimensions.width - scrollbarWidth;
-      const availableHeight = containerDimensions.height;
-      
-      const fitWidthScale = availableWidth / pageDimensions.width;
-      const fitHeightScale = availableHeight / pageDimensions.height;
-      
-      // Use the smaller scale to ensure page fits entirely within view
-      const autoScale = Math.min(fitWidthScale, fitHeightScale);
-      const newZoom = Math.round(autoScale * 100);
-      
-      console.log('[App] useEffect auto recalc: available:', availableWidth, 'x', availableHeight, 'page:', pageDimensions.width, 'x', pageDimensions.height, 'fitWidth:', fitWidthScale, 'fitHeight:', fitHeightScale, 'chosen:', autoScale, 'zoom:', newZoom);
-      isProgrammaticUpdate.current = true;
-      setScale(autoScale);
-      setZoom(newZoom);
+    if (zoomMode === 'manual') {
+      // Manual mode - don't recalculate
+      return;
     }
-    // zoomMode === 'manual' - don't recalculate
-  }, [pageDimensions, containerDimensions, zoomMode]);
+
+    const { scale, zoom } = calculateZoom(zoomMode, scrollMode, pageDimensions, containerDimensions);
+    
+    isProgrammaticUpdate.current = true;
+    setScale(scale);
+    setZoom(zoom);
+  }, [pageDimensions, containerDimensions, zoomMode, scrollMode]);
 
   // Reset programmatic flag after state updates
   useEffect(() => {
@@ -299,8 +340,8 @@ const App: React.FC = () => {
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             zoom={zoom}
-            scrollMode={scrollMode}
-            onScrollModeChange={setScrollMode}
+            viewMode={scrollMode}
+            onViewModeChange={setScrollMode}
             pageDimensions={pageDimensions}
             containerDimensions={containerDimensions}
             onFitToWidth={() => {
@@ -320,9 +361,9 @@ const App: React.FC = () => {
             onCurrentPageChange={setCurrentPage}
             onTotalPagesChange={setTotalPages}
             scale={scale}
-            scrollMode={scrollMode}
-            onPageDimensionsChange={(width, height) => {
-              console.log('[App] Page dimensions changed:', width, 'x', height);
+            viewMode={scrollMode}
+            onPageDimensionsChange={(width, height, pagesPerView) => {
+              console.log('[App] Page dimensions changed:', width, 'x', height, 'pagesPerView:', pagesPerView);
               setPageDimensions({width, height});
               // Recalculation handled by useEffect
             }}

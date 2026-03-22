@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ViewMode } from './PDFViewer';
 
 interface ToolbarProps {
   onOpenFile: () => void;
@@ -10,8 +11,8 @@ interface ToolbarProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   zoom: number;
-  scrollMode: 'fit-height' | 'scroll';
-  onScrollModeChange: (mode: 'fit-height' | 'scroll') => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
   pageDimensions: { width: number; height: number };
   containerDimensions: { width: number; height: number };
   onFitToWidth: () => void;
@@ -28,14 +29,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
   totalPages, 
   onPageChange, 
   zoom, 
-  scrollMode, 
-  onScrollModeChange,
+  viewMode, 
+  onViewModeChange,
   pageDimensions,
   containerDimensions,
   onFitToWidth,
   onFitToHeight
 }) => {
-  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'zoom:', zoom, 'scrollMode:', scrollMode);
+  console.log('[Toolbar] Rendering - currentPage:', currentPage, 'totalPages:', totalPages, 'zoom:', zoom, 'viewMode:', viewMode);
   
   const [viewMenuOpen, setViewMenuOpen] = React.useState(false);
 
@@ -179,23 +180,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
               className="dropdown-item" 
               onClick={() => {
                 console.log('[Toolbar] Single-page view selected');
-                onScrollModeChange('fit-height');
-                onZoomChange(100);
+                onViewModeChange('single');
+                // Don't reset zoom - preserve current zoom when switching view modes
                 setViewMenuOpen(false);
               }}
             >
               Single-page view
             </div>
             <div className="dropdown-item" onClick={() => {
-              console.log('[Toolbar] Two-page view selected - not implemented');
+              console.log('[Toolbar] Two-page view selected');
+              onViewModeChange('two-page');
+              // Don't reset zoom - preserve current zoom when switching view modes
               setViewMenuOpen(false);
             }}>
               Two-page view
             </div>
             <div className="dropdown-item" onClick={() => {
               console.log('[Toolbar] Enable scrolling selected');
-              onScrollModeChange('scroll');
-              setViewMenuOpen(false);
+              // onViewModeChange('scroll');
+              // setViewMenuOpen(false);
             }}>
               Enable scrolling
             </div>

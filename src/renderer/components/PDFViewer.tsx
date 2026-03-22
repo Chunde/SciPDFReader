@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import PageCacheManager from './PageCacheManager';
 
 declare const window: any;
+
+export type ViewMode = 'single' | 'two-page' | 'scroll';
 
 interface PDFViewerProps {
   document: any;
@@ -11,21 +14,24 @@ interface PDFViewerProps {
   onCurrentPageChange: (page: number) => void;
   onTotalPagesChange: (total: number) => void;
   scale: number;
-  scrollMode: 'fit-height' | 'scroll';
-  onPageDimensionsChange?: (width: number, height: number) => void;
+  viewMode: ViewMode;
+  onPageDimensionsChange?: (width: number, height: number, pagesPerView: number) => void;
   onContainerDimensionsChange?: (width: number, height: number) => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, scrollMode, onPageDimensionsChange, onContainerDimensionsChange }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, viewMode, onPageDimensionsChange, onContainerDimensionsChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const secondCanvasRef = useRef<HTMLCanvasElement>(null);
   const renderTaskRef = useRef<any>(null);
+  const lastReportedDimensions = useRef<{width: number, height: number, pagesPerView: number} | null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pageCacheRef = useRef<PageCacheManager>(new PageCacheManager(10));
   let lastWheelTime = useRef(0);
   
-  console.log('[PDFViewer] Rendering - currentPage:', currentPage, 'scale:', scale, 'scrollMode:', scrollMode);
+  console.log('[PDFViewer] Rendering - currentPage:', currentPage, 'scale:', scale, 'viewMode:', viewMode);
 
   useEffect(() => {
     // Set worker source - use relative path from renderer/index.html location
@@ -63,10 +69,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       
       // Report initial page dimensions
       if (pdf && onPageDimensionsChange) {
+        const pagesPerView = viewMode === 'two-page' ? 2 : 1;
         const firstPage = await pdf.getPage(1);
         const viewport = firstPage.getViewport({ scale: 1 });
         console.log('[PDFViewer] First page dimensions:', viewport.width, 'x', viewport.height);
-        onPageDimensionsChange(viewport.width, viewport.height);
+        onPageDimensionsChange(viewport.width, viewport.height, pagesPerView);
       }
     } catch (error) {
       console.error('[PDFViewer] Error loading PDF:', error);
@@ -155,15 +162,15 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
 
   // Handle scroll mode rendering - render all pages when mode changes
   useEffect(() => {
-    if (scrollMode === 'scroll' && pdfDoc) {
+    if (viewMode === 'scroll' && pdfDoc) {
       console.log('[PDFViewer] Scroll mode enabled, rendering all pages');
       renderAllPages();
     }
-  }, [scrollMode, pdfDoc, scale]);
+  }, [viewMode, pdfDoc, scale]);
 
-  // Smart wheel/page navigation for single-page mode
+  // Smart wheel/page navigation for single-page and two-page modes
   useEffect(() => {
-    if (scrollMode !== 'fit-height' || !pdfDoc || !containerRef.current) return;
+    if (viewMode === 'scroll' || !pdfDoc || !containerRef.current) return;
 
     const container = containerRef.current;
 
@@ -182,17 +189,19 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       
       const { scrollTop, scrollHeight, clientHeight } = container;
       const pageFits = scrollHeight <= clientHeight;
+      const pagesPerView = viewMode === 'two-page' ? 2 : 1;
+      const maxPage = Math.min(currentPage + pagesPerView - 1, pdfDoc.numPages);
       
       // If page fits perfectly, change pages immediately
       if (pageFits) {
         e.preventDefault();
         lastWheelTime.current = now;
-        if (e.deltaY > 0 && currentPage < pdfDoc.numPages) {
-          console.log('[PDFViewer] Page fits - loading next page:', currentPage + 1);
-          onCurrentPageChange(currentPage + 1);
+        if (e.deltaY > 0 && maxPage < pdfDoc.numPages) {
+          console.log('[PDFViewer] Page fits - loading next page(s):', currentPage + pagesPerView);
+          onCurrentPageChange(currentPage + pagesPerView);
         } else if (e.deltaY < 0 && currentPage > 1) {
-          console.log('[PDFViewer] Page fits - loading previous page:', currentPage - 1);
-          onCurrentPageChange(currentPage - 1);
+          console.log('[PDFViewer] Page fits - loading previous page(s):', currentPage - pagesPerView);
+          onCurrentPageChange(currentPage - pagesPerView);
         }
         return;
       }
@@ -201,21 +210,21 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       const atBottom = scrollTop >= scrollHeight - clientHeight - 10;
       const atTop = scrollTop <= 10;
       
-      // At bottom edge and scrolling down - go to next page
-      if (e.deltaY > 0 && atBottom && currentPage < pdfDoc.numPages) {
+      // At bottom edge and scrolling down - go to next page(s)
+      if (e.deltaY > 0 && atBottom && maxPage < pdfDoc.numPages) {
         e.preventDefault();
-        console.log('[PDFViewer] At bottom edge - loading next page:', currentPage + 1);
+        console.log('[PDFViewer] At bottom edge - loading next page(s):', currentPage + pagesPerView);
         lastWheelTime.current = now;
-        onCurrentPageChange(currentPage + 1);
+        onCurrentPageChange(currentPage + pagesPerView);
         return;
       }
       
-      // At top edge and scrolling up - go to previous page
+      // At top edge and scrolling up - go to previous page(s)
       if (e.deltaY < 0 && atTop && currentPage > 1) {
         e.preventDefault();
-        console.log('[PDFViewer] At top edge - loading previous page:', currentPage - 1);
+        console.log('[PDFViewer] At top edge - loading previous page(s):', currentPage - pagesPerView);
         lastWheelTime.current = now;
-        onCurrentPageChange(currentPage - 1);
+        onCurrentPageChange(currentPage - pagesPerView);
         return;
       }
       
@@ -228,12 +237,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [scrollMode, pdfDoc, currentPage, onCurrentPageChange, isRendering]);
+  }, [viewMode, pdfDoc, currentPage, onCurrentPageChange, isRendering]);
 
   // Handle rendering - properly cancel previous render tasks
   useEffect(() => {
-    if (scrollMode !== 'fit-height' && scrollMode !== 'scroll') return;
-    if (!pdfDoc || currentPage < 1 || !canvasRef.current) return;
+    if (viewMode === 'scroll' || !pdfDoc || currentPage < 1 || !canvasRef.current) return;
     
     // Cancel any existing render task
     if (renderTaskRef.current) {
@@ -246,9 +254,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     const context = canvas.getContext('2d');
     if (!context) return;
     
+    const pagesPerView = viewMode === 'two-page' ? 2 : 1;
+    
     const renderPage = async () => {
       setIsRendering(true);
       try {
+        // Render first page
         const page = await pdfDoc.getPage(currentPage);
         const viewport = page.getViewport({ scale });
         
@@ -266,12 +277,48 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
         await renderTask.promise;
         renderTaskRef.current = null;
         
-        // Report ORIGINAL page dimensions (unscaled) - only when scale is 1 or when first loading
-        // This prevents infinite loops where changing scale changes dimensions which recalculates scale
-        if (onPageDimensionsChange && (scale === 1 || currentPage === 1)) {
+        // Report page dimensions - always report SINGLE page dimensions
+        // Only report when dimensions actually change to avoid unnecessary recalculations
+        // The viewMode-aware calculations happen in App.tsx's calculateZoom function
+        if (onPageDimensionsChange) {
+          // Always get viewport at scale 1 to report original single page dimensions
           const originalViewport = page.getViewport({ scale: 1 });
-          console.log('[PDFViewer] Reporting ORIGINAL page dimensions:', originalViewport.width, 'x', originalViewport.height);
-          onPageDimensionsChange(originalViewport.width, originalViewport.height);
+          const newDimensions = {
+            width: originalViewport.width,
+            height: originalViewport.height,
+            pagesPerView: pagesPerView
+          };
+          
+          // Only report if dimensions changed
+          const last = lastReportedDimensions.current;
+          if (!last || last.width !== newDimensions.width || last.height !== newDimensions.height || last.pagesPerView !== newDimensions.pagesPerView) {
+            console.log('[PDFViewer] Reporting page dimensions:', originalViewport.width, 'x', originalViewport.height, 'pagesPerView:', pagesPerView);
+            onPageDimensionsChange(newDimensions.width, newDimensions.height, newDimensions.pagesPerView);
+            lastReportedDimensions.current = newDimensions;
+          }
+        }
+        
+        // Render second page if two-page view
+        if (viewMode === 'two-page' && secondCanvasRef.current && currentPage < pdfDoc.numPages) {
+          const secondCanvas = secondCanvasRef.current;
+          const secondContext = secondCanvas.getContext('2d');
+          if (secondContext) {
+            const secondPage = await pdfDoc.getPage(currentPage + 1);
+            const secondViewport = secondPage.getViewport({ scale });
+            
+            secondCanvas.height = secondViewport.height;
+            secondCanvas.width = secondViewport.width;
+            
+            const secondRenderTask = secondPage.render({
+              canvasContext: secondContext,
+              viewport: secondViewport
+            });
+            renderTaskRef.current = secondRenderTask;
+            await secondRenderTask.promise;
+            renderTaskRef.current = null;
+            
+            console.log('[PDFViewer] Page', currentPage + 1, 'rendered successfully at scale:', scale);
+          }
         }
         
         console.log('[PDFViewer] Page', currentPage, 'rendered successfully at scale:', scale);
@@ -293,7 +340,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       }
       setIsRendering(false);
     };
-  }, [scrollMode, pdfDoc, currentPage, scale]);
+  }, [viewMode, pdfDoc, currentPage, scale]);
 
   const handleFitWidth = () => {
     if (!canvasRef.current?.parentElement) return;
@@ -338,18 +385,22 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
         scrollBehavior: 'smooth'
       }}
     >
-      {scrollMode === 'fit-height' ? (
-        // Fit-height mode: single page centered, scrollbar on container edge
+      {viewMode === 'single' || viewMode === 'two-page' ? (
+        // Single/Two-page mode: display page(s) centered
         <div 
           className="pdf-page-container" 
           style={{ 
             display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
             minHeight: '100%',
-            width: '100%'
+            width: '100%',
+            gap: '20px',
+            padding: '20px',
+            boxSizing: 'border-box'
           }}
         >
+          {/* Page 1 */}
           <div className="pdf-page-wrapper" style={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backgroundColor: 'white'
@@ -360,11 +411,23 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
               style={{ cursor: 'crosshair', display: 'block' }}
             />
           </div>
+          {/* Page 2 (for two-page view) */}
+          {viewMode === 'two-page' && (
+            <div className="pdf-page-wrapper" style={{ 
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              backgroundColor: 'white'
+            }}>
+              <canvas 
+                ref={secondCanvasRef} 
+                className="pdf-page"
+                style={{ cursor: 'crosshair', display: 'block' }}
+              />
+            </div>
+          )}
         </div>
       ) : (
         // Scroll mode: all pages stacked vertically
         <div 
-          ref={containerRef}
           className="pdf-scroll-container"
           style={{ 
             height: '100%', 

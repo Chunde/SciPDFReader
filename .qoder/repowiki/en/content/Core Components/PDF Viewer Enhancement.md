@@ -21,13 +21,14 @@
 
 ## Update Summary
 **Changes Made**
-- Added intelligent auto-zoom feature with 'auto' mode for automatic optimal scaling
-- Enhanced toolbar with programmatic zoom handling through `onZoomChangeExternal` and `isProgrammaticUpdate` props
-- Improved PDF viewer dimension reporting with ResizeObserver for real-time container monitoring
-- Implemented state synchronization mechanism to eliminate blinking issues during page transitions
-- Added comprehensive zoom mode management with 'manual', 'fit-width', 'fit-height', and 'auto' modes
-- Enhanced wheel event handling with improved edge detection logic and `isRendering` state management
-- Updated zoom input field styling with focus states and validation feedback
+- **Enhanced Zoom Calculation System**: Implemented sophisticated fit-to-width, fit-to-height, and auto-fit modes with accurate mathematical calculations
+- **Fixed Mathematical Errors**: Corrected zoom ratio calculations using proper container and page dimension handling
+- **Added Scrollbar Width Consideration**: Implemented 20px scrollbar width approximation for accurate fit-height calculations
+- **Improved Responsive Behavior**: Enhanced dimension handling with ResizeObserver-based container monitoring
+- **Enhanced State Synchronization**: Added programmatic update tracking to prevent mode changes during automatic updates
+- **Advanced Zoom Input System**: Implemented intelligent numeric zoom input with validation and constraint mechanisms
+- **Dual-Dimension Scaling**: Enhanced fit-height mode with comprehensive width and height constraint calculations
+- **Maximum-Area Fitting Strategy**: Implemented intelligent auto-fit mode using Math.min() for optimal page coverage
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -35,10 +36,11 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+6. [Enhanced Zoom Calculation System](#enhanced-zoom-calculation-system)
+7. [Dependency Analysis](#dependency-analysis)
+8. [Performance Considerations](#performance-considerations)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
 
 ## Introduction
 This document provides a comprehensive analysis of the SciPDFReader PDF Viewer Enhancement project. SciPDFReader is a modern, extensible PDF reader built on Electron with React, featuring AI-powered annotation capabilities and a plugin architecture inspired by VS Code. The project emphasizes cross-platform compatibility, extensibility, and intelligent document interaction through AI services.
@@ -98,8 +100,8 @@ Styles --> App
 **Diagram sources**
 - [src/main.ts:1-160](file://src/main.ts#L1-L160)
 - [src/preload.ts:1-35](file://src/preload.ts#L1-L35)
-- [src/renderer/App.tsx:1-335](file://src/renderer/App.tsx#L1-L335)
-- [src/renderer/components/PDFViewer.tsx:1-381](file://src/renderer/components/PDFViewer.tsx#L1-L381)
+- [src/renderer/App.tsx:1-349](file://src/renderer/App.tsx#L1-L349)
+- [src/renderer/components/PDFViewer.tsx:1-387](file://src/renderer/components/PDFViewer.tsx#L1-L387)
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
@@ -128,7 +130,7 @@ Built on PDF.js, the PDFViewer component handles document loading, page renderin
 - [src/core/AnnotationManager.ts:1-172](file://src/core/AnnotationManager.ts#L1-L172)
 - [src/core/PluginManager.ts:1-250](file://src/core/PluginManager.ts#L1-L250)
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
-- [src/renderer/components/PDFViewer.tsx:1-381](file://src/renderer/components/PDFViewer.tsx#L1-L381)
+- [src/renderer/components/PDFViewer.tsx:1-387](file://src/renderer/components/PDFViewer.tsx#L1-L387)
 
 ## Architecture Overview
 The application follows a client-server architecture pattern with Electron's main and renderer processes communicating through IPC channels. The design emphasizes separation of concerns and modularity.
@@ -240,14 +242,14 @@ PDFViewer --> WheelEventHandler : "manages wheel events"
 ```
 
 **Diagram sources**
-- [src/renderer/components/PDFViewer.tsx:19-381](file://src/renderer/components/PDFViewer.tsx#L19-L381)
+- [src/renderer/components/PDFViewer.tsx:19-387](file://src/renderer/components/PDFViewer.tsx#L19-L387)
 - [src/core/AnnotationManager.ts:46-84](file://src/core/AnnotationManager.ts#L46-L84)
 - [src/core/AIServiceManager.ts:13-56](file://src/core/AIServiceManager.ts#L13-L56)
 
 The component implements responsive design with dynamic scaling, supports multiple rendering modes, integrates with the annotation system for collaborative document editing, and features intelligent wheel event handling for enhanced single-page navigation.
 
 **Section sources**
-- [src/renderer/components/PDFViewer.tsx:19-381](file://src/renderer/components/PDFViewer.tsx#L19-L381)
+- [src/renderer/components/PDFViewer.tsx:19-387](file://src/renderer/components/PDFViewer.tsx#L19-L387)
 
 ### Enhanced Zoom Functionality
 **New** The Toolbar component now features a sophisticated numeric zoom input system with comprehensive validation and constraint mechanisms:
@@ -256,7 +258,7 @@ The component implements responsive design with dynamic scaling, supports multip
 **New** The application now supports an intelligent auto-zoom mode that automatically calculates optimal zoom levels based on container and page dimensions:
 
 1. **Auto Zoom Mode**: New 'auto' zoom mode that automatically calculates the best fit for both width and height
-2. **Intelligent Scaling**: Uses `Math.min(fitWidthScale, fitHeightScale)` to ensure content fits within available space
+2. **Enhanced Scaling Algorithm**: Uses `Math.min(fitWidthScale, fitHeightScale)` to ensure content fits within available space
 3. **Programmatic Updates**: Uses `isProgrammaticUpdate` ref to prevent mode changes during automatic calculations
 4. **State Synchronization**: Prevents blinking issues during page transitions with proper state management
 
@@ -527,12 +529,12 @@ Toolbar --> ToolbarProps : "implements interface"
 #### Zoom Mode Types
 1. **Manual Mode**: User-controlled zoom levels (1-500%)
 2. **Fit Width Mode**: Automatically scales to fit page width
-3. **Fit Height Mode**: Automatically scales to fit page height
-4. **Auto Mode**: Intelligent auto-fit using both width and height constraints
+3. **Fit Height Mode**: Automatically scales to fit page height with scrollbar awareness
+4. **Auto Mode**: Intelligent auto-fit using maximum-area fitting strategy
 
-#### Auto Zoom Calculation Logic
+#### Enhanced Auto Zoom Calculation Logic
 The auto zoom mode calculates optimal scaling using:
-- `fitWidthScale = containerDimensions.width / pageDimensions.width`
+- `fitWidthScale = (containerDimensions.width - scrollbarWidth) / pageDimensions.width`
 - `fitHeightScale = containerDimensions.height / pageDimensions.height`
 - `autoScale = Math.min(fitWidthScale, fitHeightScale)`
 - `newZoom = Math.round(autoScale * 100)`
@@ -676,6 +678,151 @@ The system supports batch processing, task cancellation, and provider abstractio
 
 **Section sources**
 - [src/core/AIServiceManager.ts:1-214](file://src/core/AIServiceManager.ts#L1-L214)
+
+## Enhanced Zoom Calculation System
+
+**New** The application now features a sophisticated zoom calculation system with enhanced fit-to-width, fit-to-height, and auto-fit modes. This system addresses mathematical errors in zoom ratio calculation and incorporates scrollbar width considerations for accurate page fitting.
+
+### Mathematical Error Corrections
+
+The enhanced zoom calculation system fixes critical mathematical errors in the previous implementation:
+
+#### Fixed Fit-to-Width Calculation
+**Previous Issue**: Direct width comparison without proper scaling factor consideration
+**Fixed Implementation**: 
+```javascript
+const newScale = containerDimensions.width / pageDimensions.width;
+const newZoom = Math.round(newScale * 100);
+```
+
+#### Enhanced Fit-to-Height Calculation with Scrollbar Awareness
+**Previous Issue**: Ignored scrollbar width in height calculations
+**Fixed Implementation**:
+```javascript
+const scrollbarWidth = 20; // Approximate scrollbar width
+const availableHeight = containerDimensions.height;
+const availableWidth = containerDimensions.width - scrollbarWidth;
+
+const scaleByHeight = availableHeight / pageDimensions.height;
+const scaleByWidth = availableWidth / pageDimensions.width;
+const newScale = Math.min(scaleByHeight, scaleByWidth);
+```
+
+#### Improved Auto-Fit Mode with Maximum-Area Strategy
+**Previous Issue**: Used simple width-only calculations
+**Fixed Implementation**:
+```javascript
+const fitWidthScale = availableWidth / pageDimensions.width;
+const fitHeightScale = availableHeight / pageDimensions.height;
+const autoScale = Math.min(fitWidthScale, fitHeightScale);
+```
+
+### Scrollbar Width Consideration
+
+The system now accounts for scrollbar width in fit-to-height and auto-fit modes:
+
+- **20px Approximation**: Uses a conservative 20px scrollbar width assumption
+- **Available Space Calculation**: Subtracts scrollbar width from container width for accurate fit calculations
+- **Responsive Adjustment**: Maintains proper aspect ratios while accounting for scrollbars
+
+### Enhanced Dimension Handling
+
+**New** The PDFViewer component implements comprehensive dimension handling:
+
+#### Page Dimension Tracking
+- Captures first page dimensions immediately after PDF loading
+- Provides accurate baseline measurements for zoom calculations
+- Supports dynamic dimension updates during runtime
+
+#### Container Dimension Monitoring
+- Uses ResizeObserver for efficient container dimension tracking
+- Handles window resizing and layout changes
+- Prevents unnecessary re-calculations through debouncing
+
+#### Responsive Scaling Implementation
+- Real-time dimension updates trigger zoom recalculations
+- Maintains aspect ratios during scaling operations
+- Prevents content overflow with proper boundary checking
+
+### State Synchronization and Programmatic Updates
+
+**New** The enhanced system includes sophisticated state management:
+
+#### Programmatic Update Tracking
+- `isProgrammaticUpdate` ref prevents mode changes during automatic updates
+- 100ms timeout ensures proper cleanup after programmatic operations
+- Coordinates with App component state to prevent visual artifacts
+
+#### Mode Preservation Mechanism
+- External zoom changes preserve current zoom mode
+- User-initiated changes switch to manual mode
+- Auto-fit calculations maintain optimal viewing experience
+
+#### Blinking Prevention
+- State synchronization eliminates visual glitches during page transitions
+- Coordinated updates prevent conflicting state changes
+- Proper cleanup mechanisms prevent memory leaks
+
+### Zoom Input System Enhancements
+
+**New** The numeric zoom input system provides comprehensive validation:
+
+#### Real-time Input Processing
+- Allows free-form numeric input without immediate validation
+- Processes constraints only on Enter key or blur events
+- Maintains user experience with responsive input handling
+
+#### Constraint Validation System
+- Enforces 1-500% range limits for all zoom inputs
+- Validates user input on Enter key press
+- Constrains values on input blur for graceful fallback
+
+#### Visual Feedback and Styling
+- Enhanced focus states with blue border highlighting
+- Proper input styling with centered text alignment
+- Responsive design with appropriate spacing and padding
+
+### Dimension Reporting and Auto-fit Calculations
+
+**New** The system implements comprehensive dimension reporting:
+
+#### Page Dimension Capture
+- Extracts viewport dimensions from first PDF page
+- Provides accurate baseline measurements for scaling
+- Supports dynamic dimension updates during runtime
+
+#### Container Dimension Monitoring
+- Real-time container dimension tracking with ResizeObserver
+- Efficient dimension change detection and handling
+- Prevents excessive re-calculations through proper state management
+
+#### Auto-fit Calculation Pipeline
+```mermaid
+flowchart TD
+PageLoaded[Page Loaded] --> GetDimensions[Get Page Dimensions]
+GetDimensions --> ContainerReady{Container Ready?}
+ContainerReady --> |No| Wait[Wait for Container]
+ContainerReady --> |Yes| CalculateFit[Calculate Fit Modes]
+CalculateFit --> FitWidth[Fit to Width Calculation]
+CalculateFit --> FitHeight[Fit to Height Calculation]
+CalculateFit --> AutoFit[Auto-fit Calculation]
+FitWidth --> ApplyWidth[Apply Width Scale]
+FitHeight --> ApplyHeight[Apply Height Scale]
+AutoFit --> ApplyAuto[Apply Auto Scale]
+ApplyWidth --> UpdateState[Update State]
+ApplyHeight --> UpdateState
+ApplyAuto --> UpdateState
+UpdateState --> SyncProgrammatic[Sync Programmatic Updates]
+SyncProgrammatic --> Complete[Calculation Complete]
+```
+
+**Diagram sources**
+- [src/renderer/App.tsx:57-107](file://src/renderer/App.tsx#L57-L107)
+
+**Section sources**
+- [src/renderer/App.tsx:57-107](file://src/renderer/App.tsx#L57-L107)
+- [src/renderer/components/Toolbar.tsx:110-164](file://src/renderer/components/Toolbar.tsx#L110-L164)
+- [src/renderer/components/PDFViewer.tsx:152-165](file://src/renderer/components/PDFViewer.tsx#L152-L165)
 
 ## Dependency Analysis
 The project maintains clean dependency boundaries with clear interfaces between components, promoting maintainability and testability.
@@ -916,7 +1063,7 @@ Common issues and their solutions:
   - **Solution**: Ensure cleanup of ResizeObserver on component unmount
 
 - **Issue**: Auto-fit calculations incorrect
-  - **Solution**: Verify padding calculations (40px constant)
+  - **Solution**: Verify scrollbar width calculation (20px constant)
   - **Solution**: Check scale calculation logic for fit-width and fit-height
   - **Solution**: Ensure auto-fit only occurs when dimensions are available
 
@@ -962,6 +1109,11 @@ Key strengths of the implementation include:
 - **Updated** Intelligent auto-zoom feature with 'auto' mode for automatic optimal scaling
 - **Updated** Enhanced toolbar with programmatic zoom handling and state synchronization
 - **Updated** State synchronization mechanism to eliminate blinking during page transitions
+- **Updated** Enhanced zoom ratio calculations with accurate scaling algorithms
+- **Updated** Improved container dimension measurement using ResizeObserver
+- **Updated** Scrollbar awareness with 20px approximation for fit-height calculations
+- **Updated** Dual-dimension scaling for comprehensive page fitting
+- **Updated** Maximum-area fitting strategy for optimal page coverage
 
 The project provides an excellent foundation for further enhancements, particularly in areas such as advanced PDF parsing, collaborative annotation features, expanded AI capabilities, and refined user interaction patterns. The modular design ensures that future improvements can be integrated seamlessly without disrupting existing functionality.
 
