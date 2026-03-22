@@ -305,16 +305,27 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
   }
 
   return (
-    <div className="pdf-content" ref={containerRef}>
+    <div 
+      className="pdf-content" 
+      ref={containerRef}
+      style={{
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        scrollBehavior: 'smooth'
+      }}
+    >
       {scrollMode === 'fit-height' ? (
-        // Fit-height mode: single page centered
-        <div className="pdf-page-container" style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          height: '100%',
-          overflow: 'auto'
-        }}>
+        // Fit-height mode: single page centered, scrollbar on container edge
+        <div 
+          className="pdf-page-container" 
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            minHeight: '100%',
+            padding: '20px'
+          }}
+        >
           <div className="pdf-page-wrapper" style={{ 
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backgroundColor: 'white'
