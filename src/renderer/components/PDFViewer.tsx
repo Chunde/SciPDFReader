@@ -123,9 +123,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
   useEffect(() => {
     if (!containerRef.current) return;
     
+    const container = containerRef.current;
+    
     const updateContainerDimensions = () => {
-      if (containerRef.current && onContainerDimensionsChange) {
-        const rect = containerRef.current.getBoundingClientRect();
+      if (container && onContainerDimensionsChange) {
+        const rect = container.getBoundingClientRect();
         console.log('[PDFViewer] Container dimensions changed:', rect.width, 'x', rect.height);
         onContainerDimensionsChange(rect.width, rect.height);
       }
@@ -137,7 +139,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       updateContainerDimensions();
     });
     
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(container);
     
     // Initial measurement
     updateContainerDimensions();
@@ -146,7 +148,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     return () => {
       resizeObserver.disconnect();
     };
-  }, [scrollMode, pdfDoc, onContainerDimensionsChange]);
+  }, []); // Empty dependency array - only run once on mount/unmount
 
   // Handle scroll mode rendering - render all pages when mode changes
   useEffect(() => {
@@ -155,6 +157,46 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       renderAllPages();
     }
   }, [scrollMode, pdfDoc, scale]);
+
+  // Smart wheel/page navigation for single-page mode
+  useEffect(() => {
+    if (scrollMode !== 'fit-height' || !pdfDoc || !containerRef.current) return;
+
+    const container = containerRef.current;
+    let wheelTimeout: NodeJS.Timeout;
+    let lastWheelTime = 0;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      
+      const now = Date.now();
+      // Throttle wheel events - one page change per 300ms
+      if (now - lastWheelTime < 300) return;
+      
+      lastWheelTime = now;
+      
+      const deltaY = e.deltaY;
+      console.log('[PDFViewer] Wheel event - deltaY:', deltaY);
+      
+      // Scroll down (positive delta) - next page
+      if (deltaY > 0 && currentPage < pdfDoc.numPages) {
+        console.log('[PDFViewer] Wheel down - loading next page:', currentPage + 1);
+        onCurrentPageChange(currentPage + 1);
+      }
+      // Scroll up (negative delta) - previous page
+      else if (deltaY < 0 && currentPage > 1) {
+        console.log('[PDFViewer] Wheel up - loading previous page:', currentPage - 1);
+        onCurrentPageChange(currentPage - 1);
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      clearTimeout(wheelTimeout);
+    };
+  }, [scrollMode, pdfDoc, currentPage, onCurrentPageChange]);
 
   const renderPage = async (pageNum: number) => {
     if (!pdfDoc || !canvasRef.current) return;
