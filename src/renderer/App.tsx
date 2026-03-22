@@ -362,6 +362,7 @@ const App: React.FC = () => {
             onTotalPagesChange={setTotalPages}
             scale={scale}
             viewMode={scrollMode}
+            zoomMode={zoomMode}
             onPageDimensionsChange={(width, height, pagesPerView) => {
               console.log('[App] Page dimensions changed:', width, 'x', height, 'pagesPerView:', pagesPerView);
               setPageDimensions({width, height});

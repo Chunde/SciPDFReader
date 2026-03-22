@@ -15,11 +15,12 @@ interface PDFViewerProps {
   onTotalPagesChange: (total: number) => void;
   scale: number;
   viewMode: ViewMode;
+  zoomMode: 'manual' | 'fit-width' | 'fit-height' | 'auto';
   onPageDimensionsChange?: (width: number, height: number, pagesPerView: number) => void;
   onContainerDimensionsChange?: (width: number, height: number) => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, viewMode, onPageDimensionsChange, onContainerDimensionsChange }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, viewMode, zoomMode, onPageDimensionsChange, onContainerDimensionsChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const secondCanvasRef = useRef<HTMLCanvasElement>(null);
   const renderTaskRef = useRef<any>(null);
@@ -381,7 +382,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       ref={containerRef}
       style={{
         overflowY: 'auto',
-        overflowX: 'hidden',
+        overflowX: zoomMode === 'fit-height' ? 'auto' : 'hidden',
         scrollBehavior: 'smooth'
       }}
     >
