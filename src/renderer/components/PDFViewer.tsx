@@ -16,11 +16,12 @@ interface PDFViewerProps {
   scale: number;
   viewMode: ViewMode;
   zoomMode: 'manual' | 'fit-width' | 'fit-height' | 'auto';
+  onPdfDocLoaded?: (pdfDoc: pdfjsLib.PDFDocumentProxy) => void;
   onPageDimensionsChange?: (width: number, height: number, pagesPerView: number) => void;
   onContainerDimensionsChange?: (width: number, height: number) => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, viewMode, zoomMode, onPageDimensionsChange, onContainerDimensionsChange }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, currentPage, onCurrentPageChange, onTotalPagesChange, scale, viewMode, zoomMode, onPdfDocLoaded, onPageDimensionsChange, onContainerDimensionsChange }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const secondCanvasRef = useRef<HTMLCanvasElement>(null);
   const renderTaskRef = useRef<any>(null);
@@ -39,10 +40,13 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
     pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.min.js';
   }, []);
 
+  const lastLoadedPath = useRef<string>('');
+  
   useEffect(() => {
     console.log('[PDFViewer] Document prop changed:', document);
-    if (document?.path) {
+    if (document?.path && document.path !== lastLoadedPath.current) {
       console.log('[PDFViewer] Loading PDF from path:', document.path);
+      lastLoadedPath.current = document.path;
       loadPDF(document.path);
     }
   }, [document]);
@@ -67,6 +71,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ document, onAnnotationCreate, cur
       console.log('[PDFViewer] Total pages set successfully');
       onCurrentPageChange(1);
       setIsLoading(false);
+      
+      // Notify parent that pdfDoc is loaded
+      if (onPdfDocLoaded) {
+        onPdfDocLoaded(pdf);
+      }
       
       // Report initial page dimensions
       if (pdf && onPageDimensionsChange) {

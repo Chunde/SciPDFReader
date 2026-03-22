@@ -317,6 +317,7 @@ const App: React.FC = () => {
           collapsed={sidebarCollapsed} 
           onToggle={toggleSidebar}
           document={currentDocument}
+          onPageChange={setCurrentPage}
         />
 
         <div className="pdf-viewer-container">
@@ -363,6 +364,11 @@ const App: React.FC = () => {
             scale={scale}
             viewMode={scrollMode}
             zoomMode={zoomMode}
+            onPdfDocLoaded={(pdfDoc) => {
+              // Store pdfDoc in currentDocument for outline loading
+              // Use functional update to avoid dependency on currentDocument
+              setCurrentDocument(prev => prev ? { ...prev, pdfDoc } : null);
+            }}
             onPageDimensionsChange={(width, height, pagesPerView) => {
               console.log('[App] Page dimensions changed:', width, 'x', height, 'pagesPerView:', pagesPerView);
               setPageDimensions({width, height});
